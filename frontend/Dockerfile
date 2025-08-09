@@ -12,7 +12,3 @@ RUN npm run build
 FROM nginx:1.27-alpine AS serve
 WORKDIR /
 COPY --from=build /app/build /usr/share/nginx/html
-# فایل‌های template و entrypoint را از ریپو کپی می‌کنیم
-COPY nginx/default.conf.template nginx/default.dev.conf.template /etc/nginx/templates/
-COPY nginx/entrypoint.sh /docker-entrypoint.d/99-envsubst.sh
-RUN chmod +x /docker-entrypoint.d/99-envsubst.sh
