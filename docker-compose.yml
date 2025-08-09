@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     volumes:
       - mongo_data:/data/db
+    networks: [app]
 
   backend:
     build:
@@ -29,6 +30,8 @@ services:
     environment:
       - NGINX_ENV=${NGINX_ENV:-development}
       - DOMAIN=${DOMAIN:-localhost}
+    depends_on:
+      - backend
     networks: [app]
 
   nginx:
@@ -38,6 +41,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - backend
+      - frontend
     ports:
       - "80:80"
       - "443:443"
