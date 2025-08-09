@@ -99,9 +99,10 @@ let mongoConnected = false;
 const connectWithRetry = () => {
   mongoose
     .connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => {
+    .then(async () => {
       mongoConnected = true;
       console.log("Connected to MongoDB");
+      await createDefaultAdmin();
     })
     .catch((err) => {
       console.error("MongoDB connection error:", err.message);
@@ -128,6 +129,23 @@ userSchema.pre("save", async function (next) {
 });
 
 const User = mongoose.model("User", userSchema);
+
+const createDefaultAdmin = async () => {
+  try {
+    const count = await User.countDocuments();
+    if (count === 0) {
+      const admin = new User({
+        username: "admin",
+        password: "admin",
+        role: "admin",
+      });
+      await admin.save();
+      console.log("Default admin user created: admin/admin");
+    }
+  } catch (err) {
+    console.error("Error creating default admin user:", err.message);
+  }
+};
 
 const settingsSchema = new mongoose.Schema(
   {
