@@ -72,7 +72,9 @@
 
 @layer base {
   * {
-    @apply border-border;
+    /* Tailwind v4 no longer supports @apply with custom colors without @reference */
+    /* Set the default border color using the CSS variable instead */
+    border-color: hsl(var(--border));
   }
   body {
     @apply bg-background text-foreground;
