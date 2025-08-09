@@ -5,6 +5,9 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY frontend/package*.json ./
+# Ensure patch files are available before installation so patch-package
+# can modify dependencies like react-scripts during the postinstall step.
+COPY frontend/patches ./patches
 RUN npm ci
 COPY frontend/ ./
 RUN npm run build
