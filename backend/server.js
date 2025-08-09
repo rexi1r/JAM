@@ -109,7 +109,11 @@ const connectWithRetry = () => {
       setTimeout(connectWithRetry, 5000);
     });
 };
-connectWithRetry();
+if (process.env.NODE_ENV === "test") {
+  mongoConnected = true;
+} else {
+  connectWithRetry();
+}
 
 // --- Schemas & Models
 const userSchema = new mongoose.Schema(
@@ -562,6 +566,10 @@ app.use((err, req, res, next) => {
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
