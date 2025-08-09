@@ -1,4 +1,4 @@
-version: "3.9"
+
 
 services:
   mongo:
@@ -34,7 +34,7 @@ services:
   nginx:
     # استفاده از Dockerfile سفارشی nginx
     build:
-      context: .
+      context: ./nginx 
       dockerfile: nginx/Dockerfile
     depends_on:
       - backend
