@@ -8,7 +8,9 @@ COPY frontend/package*.json ./
 # Ensure patch files are available before installation so patch-package
 # can modify dependencies like react-scripts during the postinstall step.
 COPY frontend/patches ./patches
-RUN npm ci
+# Install all dependencies, including dev dependencies, so patch-package runs
+# and Tailwind's PostCSS plugin is available during the build.
+RUN npm ci --include=dev
 COPY frontend/ ./
 RUN npm run build
 

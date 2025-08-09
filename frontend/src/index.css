@@ -77,6 +77,8 @@
     border-color: hsl(var(--border));
   }
   body {
-    @apply bg-background text-foreground;
+    /* Use CSS variables directly instead of @apply to avoid unknown utility errors */
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
