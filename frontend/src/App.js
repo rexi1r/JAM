@@ -2041,8 +2041,8 @@ export default function App() {
         {`
           @font-face {
             font-family: 'IRANSans';
-            src: url('/path/to/IRANSans.woff2') format('woff2'),
-                 url('/path/to/IRANSans.woff') format('woff');
+            src: url('/fonts/IRANSansX-Regular.woff2') format('woff2'),
+                 url('/fonts/IRANSansX-Regular.woff') format('woff');
             font-weight: normal;
             font-style: normal;
           }
