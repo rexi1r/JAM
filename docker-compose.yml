@@ -34,8 +34,8 @@ services:
   nginx:
     # استفاده از Dockerfile سفارشی nginx
     build:
-      context: ./nginx 
-      dockerfile: nginx/Dockerfile
+      context: ./nginx
+      dockerfile: Dockerfile
     depends_on:
       - backend
     ports:
