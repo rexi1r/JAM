@@ -1,0 +1,2055 @@
+import React, { useState, useEffect } from "react";
+import { create } from "zustand";
+
+// Shadcn UI components and Lucide-React for icons
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { Textarea } from "./components/ui/textarea";
+import { Label } from "./components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent } from "./components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./components/ui/table";
+import { Checkbox } from "./components/ui/checkbox";
+import {
+  Settings,
+  User,
+  Plus,
+  FileText,
+  Copy,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Eye,
+  BarChart,
+  Users,
+  Key,
+  RefreshCcw,
+} from "lucide-react";
+
+// ------------------------------------------------------------------
+// CONFIG
+// ------------------------------------------------------------------
+const API_BASE_URL = window.location.origin;
+
+// ------------------------------------------------------------------
+// ZUSTAND STORE (fixed & expanded)
+// - addContract added
+// - updateMySettings/updateCustomerSettings added
+// - token + refreshToken management
+// ------------------------------------------------------------------
+const useStore = create((set) => ({
+  isLoggedIn: false,
+  token: localStorage.getItem("token") || null,
+  refreshToken: localStorage.getItem("refreshToken") || null,
+
+  contracts: [],
+  mySettings: null,
+  customerSettings: null,
+  users: [],
+
+  login: (token, refreshToken) => {
+    if (token) localStorage.setItem("token", token);
+    if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+    set({ isLoggedIn: true, token, refreshToken });
+  },
+  logout: () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    set({
+      isLoggedIn: false,
+      token: null,
+      refreshToken: null,
+      contracts: [],
+      mySettings: null,
+      customerSettings: null,
+      users: [],
+    });
+  },
+
+  setContracts: (contracts) => set({ contracts }),
+  addContract: (contract) =>
+    set((s) => ({ contracts: [contract, ...s.contracts] })),
+
+  setMySettings: (settings) => set({ mySettings: settings }),
+  setCustomerSettings: (settings) => set({ customerSettings: settings }),
+
+  updateMySettings: (settings) => set({ mySettings: settings }),
+  updateCustomerSettings: (settings) => set({ customerSettings: settings }),
+
+  setUsers: (users) => set({ users }),
+}));
+
+// ------------------------------------------------------------------
+// API Helper with Auto Refresh
+// - Sends Authorization: Bearer <token>
+// - On 401, tries /api/auth/refresh once, then retries original request
+// ------------------------------------------------------------------
+const fetchWithAuth = async (url, options = {}) => {
+  const state = useStore.getState();
+  const token = state.token || localStorage.getItem("token");
+  const refreshToken =
+    state.refreshToken || localStorage.getItem("refreshToken");
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options.headers,
+  };
+
+  const doFetch = async () => fetch(url, { ...options, headers });
+  let response = await doFetch();
+
+  if (response.status === 401 && refreshToken) {
+    // try refresh once
+    try {
+      const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (refreshRes.ok) {
+        const { token: newToken } = await refreshRes.json();
+        useStore.getState().login(newToken, refreshToken);
+        const retryHeaders = {
+          ...headers,
+          Authorization: `Bearer ${newToken}`,
+        };
+        response = await fetch(url, { ...options, headers: retryHeaders });
+      } else {
+        useStore.getState().logout();
+      }
+    } catch (e) {
+      useStore.getState().logout();
+    }
+  } else if (response.status === 401) {
+    useStore.getState().logout();
+  }
+
+  return response;
+};
+
+// ------------------------------------------------------------------
+// GLOBAL Modal & Utils (deduplicated)
+// ------------------------------------------------------------------
+const Modal = ({ title, children, onClose, onCopy }) => (
+  <Dialog open={true} onOpenChange={onClose}>
+    <DialogContent className="sm:max-w-[800px] max-w-[95%]">
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+      </DialogHeader>
+      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-y-auto max-h-[70vh]">
+        {children}
+      </div>
+      <div className="flex justify-end gap-2">
+        {onCopy && (
+          <Button onClick={onCopy} variant="secondary">
+            <Copy className="h-4 w-4 mr-2" /> کپی
+          </Button>
+        )}
+        <Button onClick={onClose}>بستن</Button>
+      </div>
+    </DialogContent>
+  </Dialog>
+);
+
+const copyToClipboard = (text) => {
+  if (!text) return;
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+  alert("کپی شد!");
+};
+
+// ------------------------------------------------------------------
+// MAIN APP
+// ------------------------------------------------------------------
+export default function App() {
+  const {
+    isLoggedIn,
+    login,
+    logout,
+    setContracts,
+    setMySettings,
+    setCustomerSettings,
+    setUsers,
+  } = useStore();
+  const [currentPage, setCurrentPage] = useState("login");
+  const [loadingInitialData, setLoadingInitialData] = useState(true);
+
+  const navigate = (page) => setCurrentPage(page);
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      const token = localStorage.getItem("token");
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (token && refreshToken) {
+        login(token, refreshToken);
+        await fetchAllData();
+        setCurrentPage("contractsList");
+      }
+      setLoadingInitialData(false);
+    };
+    bootstrap();
+  }, []);
+
+  const fetchAllData = async () => {
+    try {
+      const mySettingsRes = await fetchWithAuth(
+        `${API_BASE_URL}/api/settings/my`
+      );
+      if (mySettingsRes.ok) {
+        const mySettings = await mySettingsRes.json();
+        useStore.getState().setMySettings(mySettings);
+      }
+
+      const customerSettingsRes = await fetchWithAuth(
+        `${API_BASE_URL}/api/settings/customer`
+      );
+      if (customerSettingsRes.ok) {
+        const customerSettings = await customerSettingsRes.json();
+        useStore.getState().setCustomerSettings(customerSettings);
+      }
+
+      const contractsRes = await fetchWithAuth(
+        `${API_BASE_URL}/api/contracts/search`
+      );
+      if (contractsRes.ok) {
+        const contractsData = await contractsRes.json();
+        useStore.getState().setContracts(contractsData.contracts || []);
+      }
+
+      const usersRes = await fetchWithAuth(`${API_BASE_URL}/api/users`);
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        useStore.getState().setUsers(usersData || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch initial data:", e);
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // Login
+  // ------------------------------------------------------------------
+  const Login = () => {
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [pending, setPending] = useState(false);
+
+    const handleLogin = async (e) => {
+      e.preventDefault();
+      setPending(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          // store access & refresh
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("refreshToken", data.refreshToken);
+          login(data.token, data.refreshToken);
+          await fetchAllData();
+          navigate("contractsList");
+        } else {
+          alert(data.message || "اعتبارسنجی ناموفق");
+        }
+      } catch (e) {
+        alert("Server error. Please try again.");
+      } finally {
+        setPending(false);
+      }
+    };
+
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold text-center">
+              ورود
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin}>
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="username">نام کاربری</Label>
+                  <Input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="admin"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">کلمه عبور</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="admin"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={pending}>
+                  {pending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" /> در حال
+                      ورود...
+                    </>
+                  ) : (
+                    "ورود"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // ------------------------------------------------------------------
+  // Settings (works with update* actions now)
+  // ------------------------------------------------------------------
+  const SettingsPage = ({ title, settingsType }) => {
+    const {
+      mySettings,
+      customerSettings,
+      updateMySettings,
+      updateCustomerSettings,
+    } = useStore();
+    const initialSettings =
+      settingsType === "my" ? mySettings : customerSettings;
+    const updateSettings =
+      settingsType === "my" ? updateMySettings : updateCustomerSettings;
+    const [localSettings, setLocalSettings] = useState(initialSettings || {});
+
+    useEffect(() => {
+      setLocalSettings(initialSettings || {});
+    }, [initialSettings]);
+
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      const parsedValue = parseFloat(value);
+      if (parsedValue < 0) return;
+      setLocalSettings((prev) => ({ ...prev, [name]: parsedValue || 0 }));
+    };
+
+    const handleSave = async () => {
+      try {
+        const res = await fetchWithAuth(
+          `${API_BASE_URL}/api/settings/${settingsType}`,
+          {
+            method: "POST",
+            body: JSON.stringify(localSettings),
+          }
+        );
+        if (res.ok) {
+          updateSettings(localSettings);
+          navigate("contractsList");
+          alert("تنظیمات با موفقیت ذخیره شد.");
+        } else {
+          const t = await res.text();
+          alert(t || "خطا در ذخیره تنظیمات.");
+        }
+      } catch (e) {
+        alert("خطای سرور.");
+      }
+    };
+
+    return (
+      <div className="container mx-auto p-8 bg-gray-50 min-h-screen font-iransans">
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
+          {title}
+        </h1>
+        <Card className="max-w-4xl mx-auto">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+              {Object.keys(localSettings).map((key) => (
+                <div key={key} className="grid gap-2">
+                  <Label htmlFor={key}>
+                    {{
+                      defaultHourlyRate: "مبلغ ورودی ساعتی (تومان)",
+                      defaultServiceFeePerPerson:
+                        "حق سرویس هر نفر خدمه (تومان)",
+                      defaultTaxRate: "نرخ مالیات (٪)",
+                      defaultJuicePricePerPerson: "قیمت آبمیوه هر نفر (تومان)",
+                      defaultTeaPricePerPerson: "قیمت چایی هر نفر (تومان)",
+                      defaultFireworkPricePerUnit:
+                        "قیمت آتش‌بازی هر عدد (تومان)",
+                      defaultCandlePrice: "هزینه شمع‌آرایی (تومان)",
+                      defaultFlowerPrice: "هزینه گل‌آرایی (تومان)",
+                      defaultWaterPricePerUnit: "قیمت آب معدنی هر عدد (تومان)",
+                      defaultDinnerPricePerPerson: "قیمت شام هر نفر (تومان)",
+                    }[key] || key}
+                  </Label>
+                  <Input
+                    type="number"
+                    name={key}
+                    value={localSettings[key]}
+                    onChange={handleChange}
+                    id={key}
+                    min="0"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-4">
+              <Button
+                onClick={() => navigate("contractsList")}
+                variant="outline"
+              >
+                بازگشت
+              </Button>
+              <Button onClick={handleSave}>ذخیره تنظیمات</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // ------------------------------------------------------------------
+  // Create Contract
+  // ------------------------------------------------------------------
+  const CreateContract = () => {
+    const { mySettings, customerSettings, addContract } = useStore();
+
+    const [contract, setContract] = useState({
+      contractOwner: "",
+      inviteesCount: 0,
+      eventDate: "",
+      startTime: "",
+      endTime: "",
+      serviceStaffCount: 0,
+      juiceCount: 0,
+      teaCount: 0,
+      fireworkCount: 0,
+      waterCount: 0,
+      dinnerCount: 0,
+      dinnerType: "",
+      discount: 0,
+      extraDetails: "",
+      customerEntryFee: "",
+      customerServiceFee: "",
+      customerTax: "",
+      customerJuicePrice: "",
+      customerTeaPrice: "",
+      customerFireworkPrice: "",
+      customerCandlePrice: "",
+      customerFlowerPrice: "",
+      customerDinnerPrice: "",
+      customerWaterPrice: "",
+      customerTotalCost: 0,
+      myEntryFee: "",
+      myServiceFee: "",
+      myTax: "",
+      myJuicePrice: "",
+      myTeaPrice: "",
+      myFireworkPrice: "",
+      myCandlePrice: "",
+      myFlowerPrice: "",
+      myDinnerPrice: "",
+      myWaterPrice: "",
+      myTotalCost: 0,
+      includeCandle: false,
+      includeFlower: false,
+      includeJuice: false,
+      includeTea: false,
+      includeFirework: false,
+      includeWater: false,
+      includeDinner: false,
+    });
+
+    const [overridden, setOverridden] = useState({});
+    const [isSaving, setIsSaving] = useState(false);
+    const [generatedDraft, setGeneratedDraft] = useState(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [showDraftModal, setShowDraftModal] = useState(false);
+
+    const handleChange = (e) => {
+      const { name, value, type } = e.target;
+      const parsedValue = parseFloat(value);
+      if (type === "number" && parsedValue < 0) return;
+      if (
+        name.includes("Count") ||
+        name.includes("Type") ||
+        name.includes("Time") ||
+        name === "discount"
+      ) {
+        setOverridden((prev) => {
+          const o = { ...prev };
+          if (name === "serviceStaffCount") {
+            o.customerServiceFee = false;
+            o.myServiceFee = false;
+          }
+          if (name === "juiceCount") {
+            o.customerJuicePrice = false;
+            o.myJuicePrice = false;
+          }
+          if (name === "teaCount") {
+            o.customerTeaPrice = false;
+            o.myTeaPrice = false;
+          }
+          if (name === "fireworkCount") {
+            o.customerFireworkPrice = false;
+            o.myFireworkPrice = false;
+          }
+          if (name === "waterCount") {
+            o.customerWaterPrice = false;
+            o.myWaterPrice = false;
+          }
+          if (name === "dinnerCount" || name === "dinnerType") {
+            o.customerDinnerPrice = false;
+            o.myDinnerPrice = false;
+          }
+          if (name.includes("Time")) {
+            o.customerEntryFee = false;
+            o.myEntryFee = false;
+          }
+          return o;
+        });
+      }
+      setContract((prev) => ({
+        ...prev,
+        [name]: type === "number" ? parsedValue : value,
+      }));
+    };
+
+    const handleCheckboxChange = (name, checked) => {
+      setContract((prev) => ({ ...prev, [name]: checked }));
+    };
+
+    const handlePriceChange = (e) => {
+      const { name, value, type } = e.target;
+      const parsedValue = parseFloat(value);
+      if (type === "number" && parsedValue < 0) return;
+      setOverridden((prev) => ({ ...prev, [name]: true }));
+      setContract((prev) => ({ ...prev, [name]: parsedValue }));
+    };
+
+    const calculateEntryFee = (start, end, rate) => {
+      if (!start || !end || !start.includes(":") || !end.includes(":"))
+        return rate;
+      const [sh, sm] = start.split(":").map(Number);
+      const [eh, em] = end.split(":").map(Number);
+      const startDate = new Date(0, 0, 0, sh, sm);
+      const endDate = new Date(0, 0, 0, eh, em);
+      const diffInHours =
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+      if (diffInHours <= 2) return rate;
+      const extraHours = diffInHours - 2;
+      return rate + extraHours * (rate / 2);
+    };
+
+    useEffect(() => {
+      const next = { ...contract };
+      if (mySettings && customerSettings) {
+        if (!overridden.customerEntryFee)
+          next.customerEntryFee = calculateEntryFee(
+            next.startTime,
+            next.endTime,
+            customerSettings.defaultHourlyRate
+          );
+        if (!overridden.customerServiceFee)
+          next.customerServiceFee =
+            next.serviceStaffCount *
+            customerSettings.defaultServiceFeePerPerson;
+        if (next.includeJuice && !overridden.customerJuicePrice)
+          next.customerJuicePrice =
+            next.juiceCount * customerSettings.defaultJuicePricePerPerson;
+        else if (!next.includeJuice) next.customerJuicePrice = 0;
+        if (next.includeTea && !overridden.customerTeaPrice)
+          next.customerTeaPrice =
+            next.teaCount * customerSettings.defaultTeaPricePerPerson;
+        else if (!next.includeTea) next.customerTeaPrice = 0;
+        if (next.includeFirework && !overridden.customerFireworkPrice)
+          next.customerFireworkPrice =
+            next.fireworkCount * customerSettings.defaultFireworkPricePerUnit;
+        else if (!next.includeFirework) next.customerFireworkPrice = 0;
+        if (next.includeCandle && !overridden.customerCandlePrice)
+          next.customerCandlePrice = customerSettings.defaultCandlePrice;
+        else if (!next.includeCandle) next.customerCandlePrice = 0;
+        if (next.includeFlower && !overridden.customerFlowerPrice)
+          next.customerFlowerPrice = customerSettings.defaultFlowerPrice;
+        else if (!next.includeFlower) next.customerFlowerPrice = 0;
+        if (next.includeWater && !overridden.customerWaterPrice)
+          next.customerWaterPrice =
+            next.waterCount * customerSettings.defaultWaterPricePerUnit;
+        else if (!next.includeWater) next.customerWaterPrice = 0;
+        if (next.includeDinner && !overridden.customerDinnerPrice)
+          next.customerDinnerPrice =
+            next.dinnerCount * customerSettings.defaultDinnerPricePerPerson;
+        else if (!next.includeDinner) next.customerDinnerPrice = 0;
+
+        const customerTotalWithoutTax =
+          (next.customerEntryFee || 0) +
+          (next.customerServiceFee || 0) +
+          (next.customerJuicePrice || 0) +
+          (next.customerTeaPrice || 0) +
+          (next.customerFireworkPrice || 0) +
+          (next.customerCandlePrice || 0) +
+          (next.customerFlowerPrice || 0) +
+          (next.customerDinnerPrice || 0) +
+          (next.customerWaterPrice || 0) -
+          (parseFloat(next.discount) || 0);
+        next.customerTax =
+          customerTotalWithoutTax * customerSettings.defaultTaxRate;
+        next.customerTotalCost = customerTotalWithoutTax + next.customerTax;
+
+        if (!overridden.myEntryFee)
+          next.myEntryFee = calculateEntryFee(
+            next.startTime,
+            next.endTime,
+            mySettings.defaultHourlyRate
+          );
+        if (!overridden.myServiceFee)
+          next.myServiceFee =
+            next.serviceStaffCount * mySettings.defaultServiceFeePerPerson;
+        if (next.includeJuice && !overridden.myJuicePrice)
+          next.myJuicePrice =
+            next.juiceCount * mySettings.defaultJuicePricePerPerson;
+        else if (!next.includeJuice) next.myJuicePrice = 0;
+        if (next.includeTea && !overridden.myTeaPrice)
+          next.myTeaPrice = next.teaCount * mySettings.defaultTeaPricePerPerson;
+        else if (!next.includeTea) next.myTeaPrice = 0;
+        if (next.includeFirework && !overridden.myFireworkPrice)
+          next.myFireworkPrice =
+            next.fireworkCount * mySettings.defaultFireworkPricePerUnit;
+        else if (!next.includeFirework) next.myFireworkPrice = 0;
+        if (next.includeCandle && !overridden.myCandlePrice)
+          next.myCandlePrice = mySettings.defaultCandlePrice;
+        else if (!next.includeCandle) next.myCandlePrice = 0;
+        if (next.includeFlower && !overridden.myFlowerPrice)
+          next.myFlowerPrice = mySettings.defaultFlowerPrice;
+        else if (!next.includeFlower) next.myFlowerPrice = 0;
+        if (next.includeWater && !overridden.myWaterPrice)
+          next.myWaterPrice =
+            next.waterCount * mySettings.defaultWaterPricePerUnit;
+        else if (!next.includeWater) next.myWaterPrice = 0;
+        if (next.includeDinner && !overridden.myDinnerPrice)
+          next.myDinnerPrice =
+            next.dinnerCount * mySettings.defaultDinnerPricePerPerson;
+        else if (!next.includeDinner) next.myDinnerPrice = 0;
+
+        const myTotalWithoutTax =
+          (next.myEntryFee || 0) +
+          (next.myServiceFee || 0) +
+          (next.myJuicePrice || 0) +
+          (next.myTeaPrice || 0) +
+          (next.myFireworkPrice || 0) +
+          (next.myCandlePrice || 0) +
+          (next.myFlowerPrice || 0) +
+          (next.myDinnerPrice || 0) +
+          (next.myWaterPrice || 0) -
+          (parseFloat(next.discount) || 0);
+        next.myTax = myTotalWithoutTax * mySettings.defaultTaxRate;
+        next.myTotalCost = myTotalWithoutTax + next.myTax;
+      }
+      setContract(next);
+    }, [
+      contract.startTime,
+      contract.endTime,
+      contract.serviceStaffCount,
+      contract.inviteesCount,
+      contract.juiceCount,
+      contract.teaCount,
+      contract.fireworkCount,
+      contract.waterCount,
+      contract.dinnerCount,
+      contract.discount,
+      contract.includeCandle,
+      contract.includeFlower,
+      contract.includeJuice,
+      contract.includeTea,
+      contract.includeFirework,
+      contract.includeWater,
+      contract.includeDinner,
+      customerSettings,
+      mySettings,
+      overridden,
+    ]);
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setIsSaving(true);
+      try {
+        const res = await fetchWithAuth(`${API_BASE_URL}/api/contracts`, {
+          method: "POST",
+          body: JSON.stringify(contract),
+        });
+        if (res.ok) {
+          const newContract = await res.json();
+          addContract(newContract);
+          navigate("contractsList");
+          alert("قرارداد با موفقیت ثبت شد.");
+        } else {
+          const t = await res.text();
+          alert(t || "خطا در ثبت قرارداد.");
+        }
+      } catch (e) {
+        alert("خطای سرور.");
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    // NOTE: For security, this feature must be implemented via backend proxy
+    const generateOfferLetter = async () => {
+      alert(
+        "این قابلیت باید از طریق بک‌اند امن پیاده‌سازی شود (کلید API در فرانت نگهداری نمی‌شود)."
+      );
+    };
+
+    return (
+      <div className="container mx-auto p-8 min-h-screen font-iransans">
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
+          ثبت قرارداد جدید
+        </h1>
+        <Card className="max-w-6xl mx-auto">
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 gap-8 mb-8">
+                <div>
+                  <h2 className="text-xl font-bold mb-4 border-b pb-2">
+                    اطلاعات کلی قرارداد
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid gap-2">
+                      <Label htmlFor="contractOwner">نام صاحب قرارداد</Label>
+                      <Input
+                        type="text"
+                        id="contractOwner"
+                        name="contractOwner"
+                        value={contract.contractOwner}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="inviteesCount">تعداد مهمان</Label>
+                      <Input
+                        type="number"
+                        id="inviteesCount"
+                        name="inviteesCount"
+                        value={contract.inviteesCount}
+                        onChange={handleChange}
+                        required
+                        min="0"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="eventDate">تاریخ برگزاری (شمسی)</Label>
+                      <Input
+                        type="text"
+                        id="eventDate"
+                        name="eventDate"
+                        value={contract.eventDate}
+                        onChange={handleChange}
+                        placeholder="مثال: ۱۴۰۳/۰۴/۱۷"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="startTime">ساعت شروع</Label>
+                      <Input
+                        type="time"
+                        id="startTime"
+                        name="startTime"
+                        value={contract.startTime}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="endTime">ساعت پایان</Label>
+                      <Input
+                        type="time"
+                        id="endTime"
+                        name="endTime"
+                        value={contract.endTime}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-bold mt-8 mb-4 border-b pb-2">
+                    هزینه‌های ورودی و خدمه
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid gap-2">
+                      <Label htmlFor="customerEntryFee">
+                        مبلغ ورودی (مشتری)
+                      </Label>
+                      <Input
+                        type="number"
+                        id="customerEntryFee"
+                        name="customerEntryFee"
+                        value={contract.customerEntryFee}
+                        onChange={handlePriceChange}
+                        min="0"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="myEntryFee">مبلغ ورودی (خودم)</Label>
+                      <Input
+                        type="number"
+                        id="myEntryFee"
+                        name="myEntryFee"
+                        value={contract.myEntryFee}
+                        onChange={handlePriceChange}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="serviceStaffCount">
+                        تعداد خدمه مورد استفاده
+                      </Label>
+                      <Input
+                        type="number"
+                        id="serviceStaffCount"
+                        name="serviceStaffCount"
+                        value={contract.serviceStaffCount}
+                        onChange={handleChange}
+                        min="0"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="customerServiceFee">
+                        حق سرویس (مشتری)
+                      </Label>
+                      <Input
+                        type="number"
+                        id="customerServiceFee"
+                        name="customerServiceFee"
+                        value={contract.customerServiceFee}
+                        onChange={handlePriceChange}
+                        min="0"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="myServiceFee">حق سرویس (خودم)</Label>
+                      <Input
+                        type="number"
+                        id="myServiceFee"
+                        name="myServiceFee"
+                        value={contract.myServiceFee}
+                        onChange={handlePriceChange}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Drinks */}
+                <div>
+                  <h2 className="text-xl font-bold mt-8 mb-4 border-b pb-2">
+                    نوشیدنی‌ها
+                  </h2>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Checkbox
+                      id="includeJuice"
+                      checked={contract.includeJuice}
+                      onCheckedChange={(checked) =>
+                        handleCheckboxChange("includeJuice", checked)
+                      }
+                    />
+                    <Label htmlFor="includeJuice">شامل آبمیوه</Label>
+                  </div>
+                  {contract.includeJuice && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      <div className="grid gap-2">
+                        <Label htmlFor="juiceCount">تعداد آبمیوه</Label>
+                        <Input
+                          type="number"
+                          id="juiceCount"
+                          name="juiceCount"
+                          value={contract.juiceCount}
+                          onChange={handleChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="customerJuicePrice">
+                          قیمت آبمیوه (مشتری)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="customerJuicePrice"
+                          name="customerJuicePrice"
+                          value={contract.customerJuicePrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="myJuicePrice">قیمت آبمیوه (خودم)</Label>
+                        <Input
+                          type="number"
+                          id="myJuicePrice"
+                          name="myJuicePrice"
+                          value={contract.myJuicePrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-2 mt-4 mb-4">
+                    <Checkbox
+                      id="includeTea"
+                      checked={contract.includeTea}
+                      onCheckedChange={(checked) =>
+                        handleCheckboxChange("includeTea", checked)
+                      }
+                    />
+                    <Label htmlFor="includeTea">شامل چایی</Label>
+                  </div>
+                  {contract.includeTea && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      <div className="grid gap-2">
+                        <Label htmlFor="teaCount">تعداد چایی</Label>
+                        <Input
+                          type="number"
+                          id="teaCount"
+                          name="teaCount"
+                          value={contract.teaCount}
+                          onChange={handleChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="customerTeaPrice">
+                          قیمت چایی (مشتری)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="customerTeaPrice"
+                          name="customerTeaPrice"
+                          value={contract.customerTeaPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="myTeaPrice">قیمت چایی (خودم)</Label>
+                        <Input
+                          type="number"
+                          id="myTeaPrice"
+                          name="myTeaPrice"
+                          value={contract.myTeaPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-2 mt-4 mb-4">
+                    <Checkbox
+                      id="includeWater"
+                      checked={contract.includeWater}
+                      onCheckedChange={(checked) =>
+                        handleCheckboxChange("includeWater", checked)
+                      }
+                    />
+                    <Label htmlFor="includeWater">شامل آب معدنی</Label>
+                  </div>
+                  {contract.includeWater && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      <div className="grid gap-2">
+                        <Label htmlFor="waterCount">تعداد آب معدنی</Label>
+                        <Input
+                          type="number"
+                          id="waterCount"
+                          name="waterCount"
+                          value={contract.waterCount}
+                          onChange={handleChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="customerWaterPrice">
+                          قیمت آب معدنی (مشتری)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="customerWaterPrice"
+                          name="customerWaterPrice"
+                          value={contract.customerWaterPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="myWaterPrice">
+                          قیمت آب معدنی (خودم)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="myWaterPrice"
+                          name="myWaterPrice"
+                          value={contract.myWaterPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Dinner */}
+                <div>
+                  <h2 className="text-xl font-bold mt-8 mb-4 border-b pb-2">
+                    شام
+                  </h2>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Checkbox
+                      id="includeDinner"
+                      checked={contract.includeDinner}
+                      onCheckedChange={(checked) =>
+                        handleCheckboxChange("includeDinner", checked)
+                      }
+                    />
+                    <Label htmlFor="includeDinner">شامل شام</Label>
+                  </div>
+                  {contract.includeDinner && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                      <div className="grid gap-2">
+                        <Label htmlFor="dinnerType">نوع شام</Label>
+                        <Input
+                          type="text"
+                          id="dinnerType"
+                          name="dinnerType"
+                          value={contract.dinnerType}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="dinnerCount">تعداد شام</Label>
+                        <Input
+                          type="number"
+                          id="dinnerCount"
+                          name="dinnerCount"
+                          value={contract.dinnerCount}
+                          onChange={handleChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="customerDinnerPrice">
+                          قیمت شام (مشتری)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="customerDinnerPrice"
+                          name="customerDinnerPrice"
+                          value={contract.customerDinnerPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="myDinnerPrice">قیمت شام (خودم)</Label>
+                        <Input
+                          type="number"
+                          id="myDinnerPrice"
+                          name="myDinnerPrice"
+                          value={contract.myDinnerPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Decorations & Firework */}
+                <div>
+                  <h2 className="text-xl font-bold mt-8 mb-4 border-b pb-2">
+                    تزیینات و آتش‌بازی
+                  </h2>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Checkbox
+                      id="includeCandle"
+                      checked={contract.includeCandle}
+                      onCheckedChange={(checked) =>
+                        handleCheckboxChange("includeCandle", checked)
+                      }
+                    />
+                    <Label htmlFor="includeCandle">شامل شمع‌آرایی</Label>
+                  </div>
+                  {contract.includeCandle && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="customerCandlePrice">
+                          هزینه شمع‌آرایی (مشتری)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="customerCandlePrice"
+                          name="customerCandlePrice"
+                          value={contract.customerCandlePrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="myCandlePrice">
+                          هزینه شمع‌آرایی (خودم)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="myCandlePrice"
+                          name="myCandlePrice"
+                          value={contract.myCandlePrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Checkbox
+                      id="includeFlower"
+                      checked={contract.includeFlower}
+                      onCheckedChange={(checked) =>
+                        handleCheckboxChange("includeFlower", checked)
+                      }
+                    />
+                    <Label htmlFor="includeFlower">شامل گل‌آرایی</Label>
+                  </div>
+                  {contract.includeFlower && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="customerFlowerPrice">
+                          هزینه گل‌آرایی (مشتری)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="customerFlowerPrice"
+                          name="customerFlowerPrice"
+                          value={contract.customerFlowerPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="myFlowerPrice">
+                          هزینه گل‌آرایی (خودم)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="myFlowerPrice"
+                          name="myFlowerPrice"
+                          value={contract.myFlowerPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Checkbox
+                      id="includeFirework"
+                      checked={contract.includeFirework}
+                      onCheckedChange={(checked) =>
+                        handleCheckboxChange("includeFirework", checked)
+                      }
+                    />
+                    <Label htmlFor="includeFirework">شامل آتش‌بازی</Label>
+                  </div>
+                  {contract.includeFirework && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      <div className="grid gap-2">
+                        <Label htmlFor="fireworkCount">تعداد آتش‌بازی</Label>
+                        <Input
+                          type="number"
+                          id="fireworkCount"
+                          name="fireworkCount"
+                          value={contract.fireworkCount}
+                          onChange={handleChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="customerFireworkPrice">
+                          قیمت آتش‌بازی (مشتری)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="customerFireworkPrice"
+                          name="customerFireworkPrice"
+                          value={contract.customerFireworkPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="myFireworkPrice">
+                          قیمت آتش‌بازی (خودم)
+                        </Label>
+                        <Input
+                          type="number"
+                          id="myFireworkPrice"
+                          name="myFireworkPrice"
+                          value={contract.myFireworkPrice}
+                          onChange={handlePriceChange}
+                          min="0"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold mt-8 mb-4 border-b pb-2">
+                  نهایی و توضیحات
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid gap-2">
+                    <Label htmlFor="discount">تخفیف (تومان)</Label>
+                    <Input
+                      type="number"
+                      id="discount"
+                      name="discount"
+                      value={contract.discount}
+                      onChange={handleChange}
+                      min="0"
+                    />
+                  </div>
+                  <div className="grid gap-2 col-span-1 md:col-span-2 lg:col-span-3">
+                    <Label htmlFor="extraDetails">توضیحات اضافه</Label>
+                    <Textarea
+                      id="extraDetails"
+                      name="extraDetails"
+                      value={contract.extraDetails}
+                      onChange={handleChange}
+                      rows="3"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t-2 border-gray-100 mt-8 flex-wrap">
+                <div className="flex flex-col gap-2">
+                  <div className="text-2xl font-bold text-gray-800">
+                    مبلغ نهایی مشتری:{" "}
+                    {contract.customerTotalCost.toLocaleString("fa-IR")} تومان
+                  </div>
+                  <div className="text-2xl font-bold text-gray-800">
+                    مبلغ نهایی خودم:{" "}
+                    {contract.myTotalCost.toLocaleString("fa-IR")} تومان
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={generateOfferLetter}
+                    disabled
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    <span>پیش‌نویس نامه پیشنهاد (به‌زودی از بک‌اند)</span>
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate("contractsList")}
+                  >
+                    بازگشت
+                  </Button>
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? "در حال ذخیره..." : "ثبت قرارداد"}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // ------------------------------------------------------------------
+  // Contracts List
+  // ------------------------------------------------------------------
+  const ContractsList = () => {
+    const contracts = useStore((state) => state.contracts);
+    const logout = useStore((state) => state.logout);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPageNumber, setCurrentPageNumber] = useState(1);
+    const contractsPerPage = 5;
+
+    const filteredContracts = contracts.filter(
+      (c) =>
+        (c.contractOwner || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        (c.eventDate || "").includes(searchTerm)
+    );
+
+    const indexOfLastContract = currentPageNumber * contractsPerPage;
+    const indexOfFirstContract = indexOfLastContract - contractsPerPage;
+    const currentContracts = filteredContracts.slice(
+      indexOfFirstContract,
+      indexOfLastContract
+    );
+    const totalPages =
+      Math.ceil(filteredContracts.length / contractsPerPage) || 1;
+
+    return (
+      <div className="container mx-auto p-8 min-h-screen font-iransans">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-extrabold text-gray-800">
+            لیست قراردادها
+          </h1>
+          <div className="flex gap-2">
+            <Button onClick={fetchAllData} variant="outline">
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              به‌روزرسانی
+            </Button>
+            <Button onClick={logout} variant="destructive">
+              خروج
+            </Button>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+              <Input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full md:w-1/3"
+                placeholder="جستجو بر اساس نام یا تاریخ..."
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => navigate("mySettings")}
+                  variant="secondary"
+                >
+                  <Settings className="h-4 w-4 mr-2" /> تنظیمات قیمت برای خودم
+                </Button>
+                <Button
+                  onClick={() => navigate("customerSettings")}
+                  variant="secondary"
+                >
+                  <User className="h-4 w-4 mr-2" /> تنظیمات قیمت برای مشتری
+                </Button>
+                <Button onClick={() => navigate("createContract")}>
+                  <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد جدید
+                </Button>
+                <Button
+                  onClick={() => navigate("reporting")}
+                  variant="secondary"
+                >
+                  <BarChart className="h-4 w-4 mr-2" /> گزارش‌گیری
+                </Button>
+                <Button
+                  onClick={() => navigate("userManagement")}
+                  variant="secondary"
+                >
+                  <Users className="h-4 w-4 mr-2" /> مدیریت کاربران
+                </Button>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">
+                      نام صاحب قرارداد
+                    </TableHead>
+                    <TableHead className="text-right">تاریخ</TableHead>
+                    <TableHead className="text-right">مبلغ نهایی</TableHead>
+                    <TableHead className="text-right">عملیات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentContracts.length > 0 ? (
+                    currentContracts.map((c) => (
+                      <TableRow key={c._id || c.id}>
+                        <TableCell>{c.contractOwner}</TableCell>
+                        <TableCell>{c.eventDate}</TableCell>
+                        <TableCell>
+                          {Number(c.customerTotalCost || 0).toLocaleString(
+                            "fa-IR"
+                          )}{" "}
+                          تومان
+                        </TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Eye className="h-4 w-4 ml-2" /> مشاهده جزئیات
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[800px] max-w-[95%]">
+                              <DialogHeader>
+                                <DialogTitle>
+                                  جزئیات قرارداد: {c.contractOwner}
+                                </DialogTitle>
+                              </DialogHeader>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-sm">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold border-b pb-1">
+                                    اطلاعات کلی
+                                  </h4>
+                                  <p>
+                                    <strong>تعداد مهمان:</strong>{" "}
+                                    {c.inviteesCount}
+                                  </p>
+                                  <p>
+                                    <strong>تاریخ برگزاری:</strong>{" "}
+                                    {c.eventDate}
+                                  </p>
+                                  <p>
+                                    <strong>ساعت:</strong> {c.startTime} تا{" "}
+                                    {c.endTime}
+                                  </p>
+                                  <p>
+                                    <strong>تعداد خدمه:</strong>{" "}
+                                    {c.serviceStaffCount}
+                                  </p>
+                                  <p>
+                                    <strong>تخفیف:</strong>{" "}
+                                    {Number(c.discount || 0).toLocaleString(
+                                      "fa-IR"
+                                    )}{" "}
+                                    تومان
+                                  </p>
+                                  <p>
+                                    <strong>توضیحات:</strong> {c.extraDetails}
+                                  </p>
+                                </div>
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold border-b pb-1 text-blue-600">
+                                    هزینه‌های مشتری
+                                  </h4>
+                                  <p>
+                                    <strong>مبلغ ورودی:</strong>{" "}
+                                    {Number(
+                                      c.customerEntryFee || 0
+                                    ).toLocaleString("fa-IR")}{" "}
+                                    تومان
+                                  </p>
+                                  <p>
+                                    <strong>حق سرویس:</strong>{" "}
+                                    {Number(
+                                      c.customerServiceFee || 0
+                                    ).toLocaleString("fa-IR")}{" "}
+                                    تومان
+                                  </p>
+                                  {c.includeJuice && (
+                                    <p>
+                                      <strong>
+                                        قیمت آبمیوه ({c.juiceCount} عدد):
+                                      </strong>{" "}
+                                      {Number(
+                                        c.customerJuicePrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeTea && (
+                                    <p>
+                                      <strong>
+                                        قیمت چایی ({c.teaCount} عدد):
+                                      </strong>{" "}
+                                      {Number(
+                                        c.customerTeaPrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeWater && (
+                                    <p>
+                                      <strong>
+                                        قیمت آب معدنی ({c.waterCount} عدد):
+                                      </strong>{" "}
+                                      {Number(
+                                        c.customerWaterPrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeCandle && (
+                                    <p>
+                                      <strong>هزینه شمع‌آرایی:</strong>{" "}
+                                      {Number(
+                                        c.customerCandlePrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeFlower && (
+                                    <p>
+                                      <strong>هزینه گل‌آرایی:</strong>{" "}
+                                      {Number(
+                                        c.customerFlowerPrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeFirework && (
+                                    <p>
+                                      <strong>
+                                        قیمت آتش‌بازی ({c.fireworkCount} عدد):
+                                      </strong>{" "}
+                                      {Number(
+                                        c.customerFireworkPrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeDinner && (
+                                    <p>
+                                      <strong>
+                                        قیمت شام ({c.dinnerCount} پرس -{" "}
+                                        {c.dinnerType}):
+                                      </strong>{" "}
+                                      {Number(
+                                        c.customerDinnerPrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  <p>
+                                    <strong>مالیات:</strong>{" "}
+                                    {Number(c.customerTax || 0).toLocaleString(
+                                      "fa-IR"
+                                    )}{" "}
+                                    تومان
+                                  </p>
+                                  <p className="font-bold">
+                                    <strong>مبلغ نهایی:</strong>{" "}
+                                    {Number(
+                                      c.customerTotalCost || 0
+                                    ).toLocaleString("fa-IR")}{" "}
+                                    تومان
+                                  </p>
+                                </div>
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold border-b pb-1 text-green-600">
+                                    هزینه‌های خودم
+                                  </h4>
+                                  <p>
+                                    <strong>مبلغ ورودی:</strong>{" "}
+                                    {Number(c.myEntryFee || 0).toLocaleString(
+                                      "fa-IR"
+                                    )}{" "}
+                                    تومان
+                                  </p>
+                                  <p>
+                                    <strong>حق سرویس:</strong>{" "}
+                                    {Number(c.myServiceFee || 0).toLocaleString(
+                                      "fa-IR"
+                                    )}{" "}
+                                    تومان
+                                  </p>
+                                  {c.includeJuice && (
+                                    <p>
+                                      <strong>
+                                        قیمت آبمیوه ({c.juiceCount} عدد):
+                                      </strong>{" "}
+                                      {Number(
+                                        c.myJuicePrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeTea && (
+                                    <p>
+                                      <strong>
+                                        قیمت چایی ({c.teaCount} عدد):
+                                      </strong>{" "}
+                                      {Number(c.myTeaPrice || 0).toLocaleString(
+                                        "fa-IR"
+                                      )}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeWater && (
+                                    <p>
+                                      <strong>
+                                        قیمت آب معدنی ({c.waterCount} عدد):
+                                      </strong>{" "}
+                                      {Number(
+                                        c.myWaterPrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeCandle && (
+                                    <p>
+                                      <strong>هزینه شمع‌آرایی:</strong>{" "}
+                                      {Number(
+                                        c.myCandlePrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeFlower && (
+                                    <p>
+                                      <strong>هزینه گل‌آرایی:</strong>{" "}
+                                      {Number(
+                                        c.myFlowerPrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeFirework && (
+                                    <p>
+                                      <strong>
+                                        قیمت آتش‌بازی ({c.fireworkCount} عدد):
+                                      </strong>{" "}
+                                      {Number(
+                                        c.myFireworkPrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  {c.includeDinner && (
+                                    <p>
+                                      <strong>
+                                        قیمت شام ({c.dinnerCount} پرس -{" "}
+                                        {c.dinnerType}):
+                                      </strong>{" "}
+                                      {Number(
+                                        c.myDinnerPrice || 0
+                                      ).toLocaleString("fa-IR")}{" "}
+                                      تومان
+                                    </p>
+                                  )}
+                                  <p>
+                                    <strong>مالیات:</strong>{" "}
+                                    {Number(c.myTax || 0).toLocaleString(
+                                      "fa-IR"
+                                    )}{" "}
+                                    تومان
+                                  </p>
+                                  <p className="font-bold">
+                                    <strong>مبلغ نهایی:</strong>{" "}
+                                    {Number(c.myTotalCost || 0).toLocaleString(
+                                      "fa-IR"
+                                    )}{" "}
+                                    تومان
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex justify-end mt-4">
+                                <Button
+                                  onClick={() =>
+                                    document
+                                      .querySelector('[data-state="open"]')
+                                      .click()
+                                  }
+                                >
+                                  بستن
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan="4"
+                        className="h-24 text-center text-gray-500"
+                      >
+                        قراردادی یافت نشد.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-6">
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() =>
+                      setCurrentPageNumber((p) => Math.max(p - 1, 1))
+                    }
+                    disabled={currentPageNumber === 1}
+                    variant="outline"
+                    size="icon"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <div className="text-sm">
+                    صفحه {currentPageNumber} از {totalPages}
+                  </div>
+                  <Button
+                    onClick={() =>
+                      setCurrentPageNumber((p) => Math.min(p + 1, totalPages))
+                    }
+                    disabled={currentPageNumber === totalPages}
+                    variant="outline"
+                    size="icon"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // ------------------------------------------------------------------
+  // Simple Reporting (added to remove runtime error)
+  // ------------------------------------------------------------------
+  const Reporting = () => {
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const load = async () => {
+        try {
+          const res = await fetchWithAuth(
+            `${API_BASE_URL}/api/contracts/reporting`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setRows(data || []);
+          }
+        } catch (e) {
+          /* noop */
+        }
+        setLoading(false);
+      };
+      load();
+    }, []);
+
+    return (
+      <div className="container mx-auto p-8 min-h-screen font-iransans">
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
+          گزارش‌گیری
+        </h1>
+        <Card>
+          <CardContent className="pt-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : rows.length === 0 ? (
+              <div className="text-center text-gray-500 py-12">
+                داده‌ای یافت نشد.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">ماه</TableHead>
+                      <TableHead className="text-right">
+                        تعداد قرارداد
+                      </TableHead>
+                      <TableHead className="text-right">
+                        جمع مبلغ مشتری
+                      </TableHead>
+                      <TableHead className="text-right">
+                        جمع مبلغ خودم
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{r.monthName}</TableCell>
+                        <TableCell>{r.contractCount}</TableCell>
+                        <TableCell>
+                          {Number(
+                            r.customerTotal || r.customerTotalCost || 0
+                          ).toLocaleString("fa-IR")}{" "}
+                          تومان
+                        </TableCell>
+                        <TableCell>
+                          {Number(
+                            r.myTotal || r.myTotalCost || 0
+                          ).toLocaleString("fa-IR")}{" "}
+                          تومان
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // ------------------------------------------------------------------
+  // Router
+  // ------------------------------------------------------------------
+  const renderPage = () => {
+    if (loadingInitialData) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      );
+    }
+    if (!isLoggedIn) return <Login />;
+    switch (currentPage) {
+      case "mySettings":
+        return (
+          <SettingsPage title="تنظیمات قیمت برای خودم" settingsType="my" />
+        );
+      case "customerSettings":
+        return (
+          <SettingsPage
+            title="تنظیمات قیمت برای مشتری"
+            settingsType="customer"
+          />
+        );
+      case "createContract":
+        return <CreateContract />;
+      case "contractsList":
+        return <ContractsList />;
+      case "reporting":
+        return <Reporting />; // fixed missing component
+      case "userManagement":
+        return <UserManagement />;
+      default:
+        return <ContractsList />;
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // User Management
+  // ------------------------------------------------------------------
+  function UserManagement() {
+    const { users, setUsers } = useStore();
+    const [newUser, setNewUser] = useState({
+      username: "",
+      password: "",
+      role: "user",
+    });
+
+    const fetchUsers = async () => {
+      try {
+        const res = await fetchWithAuth(`${API_BASE_URL}/api/users`);
+        if (res.ok) {
+          const data = await res.json();
+          setUsers(data);
+        }
+      } catch (e) {
+        /* noop */
+      }
+    };
+
+    const handleCreateUser = async (e) => {
+      e.preventDefault();
+      try {
+        const res = await fetchWithAuth(`${API_BASE_URL}/api/users`, {
+          method: "POST",
+          body: JSON.stringify(newUser),
+        });
+        if (res.ok) {
+          alert("کاربر جدید با موفقیت ایجاد شد.");
+          fetchUsers();
+          setNewUser({ username: "", password: "", role: "user" });
+        } else {
+          alert("خطا در ایجاد کاربر.");
+        }
+      } catch (e) {
+        alert("خطای سرور.");
+      }
+    };
+
+    const handleUpdatePassword = async (id, newPassword) => {
+      try {
+        const res = await fetchWithAuth(`${API_BASE_URL}/api/users/${id}`, {
+          method: "PUT",
+          body: JSON.stringify({ password: newPassword }),
+        });
+        if (res.ok) {
+          alert("رمز عبور با موفقیت تغییر کرد.");
+          fetchUsers();
+        } else {
+          alert("خطا در تغییر رمز عبور.");
+        }
+      } catch (e) {
+        alert("خطای سرور.");
+      }
+    };
+
+    useEffect(() => {
+      fetchUsers();
+    }, []);
+
+    return (
+      <div className="container mx-auto p-8 min-h-screen font-iransans">
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
+          مدیریت کاربران
+        </h1>
+        <Card className="max-w-4xl mx-auto">
+          <CardHeader>
+            <CardTitle>ایجاد کاربر جدید</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateUser} className="grid gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="newUsername">نام کاربری</Label>
+                  <Input
+                    id="newUsername"
+                    value={newUser.username}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, username: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="newPassword">رمز عبور</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, password: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+              </div>
+              <Button type="submit">ثبت کاربر جدید</Button>
+            </form>
+          </CardContent>
+        </Card>
+        <Card className="max-w-4xl mx-auto mt-8">
+          <CardHeader>
+            <CardTitle>لیست کاربران</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">نام کاربری</TableHead>
+                  <TableHead className="text-right">سطح دسترسی</TableHead>
+                  <TableHead className="text-right">عملیات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user._id}>
+                    <TableCell>{user.username}</TableCell>
+                    <TableCell>{user.role || "user"}</TableCell>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Key className="h-4 w-4 ml-2" /> تغییر رمز عبور
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>
+                              تغییر رمز عبور برای {user.username}
+                            </DialogTitle>
+                          </DialogHeader>
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const np = e.target.elements.newPassword.value;
+                              handleUpdatePassword(user._id, np);
+                            }}
+                          >
+                            <div className="grid gap-2">
+                              <Label htmlFor="newPassword">رمز عبور جدید</Label>
+                              <Input
+                                id="newPassword"
+                                name="newPassword"
+                                type="password"
+                                required
+                              />
+                            </div>
+                            <Button type="submit" className="mt-4 w-full">
+                              ذخیره
+                            </Button>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        <div className="mt-8 flex justify-end">
+          <Button onClick={() => navigate("contractsList")} variant="outline">
+            بازگشت
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------------------------------------------------------
+  // Root
+  // ------------------------------------------------------------------
+  return (
+    <div dir="rtl">
+      <style>
+        {`
+          @font-face {
+            font-family: 'IRANSans';
+            src: url('/path/to/IRANSans.woff2') format('woff2'),
+                 url('/path/to/IRANSans.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+          }
+          body, .font-iransans { font-family: 'IRANSans', sans-serif; }
+        `}
+      </style>
+      {renderPage()}
+    </div>
+  );
+}
