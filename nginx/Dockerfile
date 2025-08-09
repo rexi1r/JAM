@@ -5,8 +5,8 @@ RUN apk add --no-cache gettext
 
 WORKDIR /etc/nginx
 
-# کپی قالب و اسکریپت entrypoint
-COPY default.conf.template /etc/nginx/templates/default.conf.template
+# کپی قالب‌های کانفیگ و اسکریپت entrypoint
+COPY default.conf.template default.dev.conf.template /etc/nginx/templates/
 COPY entrypoint.sh /docker-entrypoint.d/99-envsubst.sh
 
 # ایجاد دایرکتوری ACME challenge و تنظیم مالکیت
