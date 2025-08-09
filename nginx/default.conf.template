@@ -35,9 +35,11 @@ server {
     }
 
     # If the environment is production, redirect all HTTP traffic to HTTPS.
-    # The `return ... if=$redirect_to_https` directive avoids using `if` blocks
-    # and instead relies on the map defined above.
-    return 301 https://$host$request_uri if=$redirect_to_https;
+    # Use the $redirect_to_https flag from the map above to conditionally
+    # perform the redirect without relying on deprecated "return ... if" syntax.
+    if ($redirect_to_https) {
+        return 301 https://$host$request_uri;
+    }
 
     # Development proxy rules (only used when $redirect_to_https is 0)
     # Proxy API requests to the backend service on port 5000.
