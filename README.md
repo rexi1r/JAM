@@ -1,100 +1,59 @@
 راهنمای راه‌اندازی و اجرای پروژه
-این راهنما مراحل لازم برای راه‌اندازی پروژه با استفاده از Docker Compose را در دو محیط لوکال و سرور (Production) توضیح می‌دهد.
-
+این راهنما روش‌های اجرا و پیکربندی پروژه را در دو حالت محیط توسعه و محیط تولید توضیح می‌دهد. پیش‌فرض این راهنما برای مخزنی است که از ساختار جدید (با قالب‌های nginx/default.conf.template و nginx/Dockerfile و فایل‌های داکر جدید) استفاده می‌کند.
 پیش‌نیازها
-قبل از شروع، مطمئن شوید که ابزارهای زیر روی سیستم شما نصب هستند:
-
-Docker: برای مدیریت کانتینرها.
-
-Docker Compose: برای اجرای چندین کانتینر به صورت همزمان.
-
-۱. فایل docker-compose.yml
-این فایل سرویس‌های اصلی پروژه (frontend, backend, nginx, mongo, certbot) را تعریف می‌کند.
-
+برای اجرای این پروژه نیاز به ابزارهای زیر دارید:
+•	Docker و Docker Compose برای مدیریت و اجرای کانتینرها. نسخه‌های جدید (حداقل Docker 20.x و Compose 2.x) پیشنهاد می‌شود.
+•	یک نام دامنه معتبر در صورتی که می‌خواهید در محیط تولید از HTTPS استفاده کنید.
 متغیرهای محیطی
-در فایل docker-compose.yml، دو متغیر محیطی اصلی وجود دارد که باید آن‌ها را تنظیم کنید:
-
-NGINX_ENV: این متغیر محیط اجرای Nginx را مشخص می‌کند.
-
-برای اجرای لوکال، آن را به development تنظیم کنید.
-
-برای اجرای روی سرور، آن را به production تنظیم کنید.
-
-DOMAIN: این متغیر برای اجرای روی سرور استفاده می‌شود. آن را با نام دامنه خود جایگزین کنید (مانند example.com).
-
-version: '3.8'
-
-services:
-backend:
-build: ./backend
-depends_on:
-- mongo
-environment:
-- MONGO_URI=mongodb://admin:password@mongo:27017/contracts
-# Change this secret key to a long, random string
-- JWT_SECRET=my_super_secret_jwt_key_1234567890
-- NODE_ENV=development
-
-frontend:
-build: ./frontend
-depends_on:
-- backend
-
-nginx:
-image: nginx:alpine
-ports:
-- "80:80"
-- "443:443"
-volumes:
-- ./nginx:/etc/nginx
-- certbot-web:/var/www/certbot
-- certbot-etc:/etc/letsencrypt
-depends_on:
-- frontend
-- backend
-environment:
-# Change this variable to 'production' for server deployment
-- NGINX_ENV=development
-- DOMAIN=your_domain.com
-
-certbot:
-image: certbot/certbot
-volumes:
-- certbot-web:/var/www/certbot
-- certbot-etc:/etc/letsencrypt
-entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $$!; done;'"
-
-mongo:
-image: mongo
-ports:
-- "27017:27017"
-volumes:
-- mongo-data:/data/db
-environment:
-- MONGO_INITDB_ROOT_USERNAME=admin
-- MONGO_INITDB_ROOT_PASSWORD=password
-
-volumes:
-mongo-data:
-certbot-etc:
-certbot-web:
-
-۲. نحوه اجرا
-اجرای لوکال (Development)
-برای اجرای پروژه در محیط لوکال، فقط کافی است NGINX_ENV را در فایل docker-compose.yml روی development تنظیم کنید و سپس دستور زیر را در ریشه پروژه اجرا کنید:
-
-docker-compose up --build
-
-دسترسی: پس از اجرای موفق، برنامه از طریق آدرس http://localhost:80 قابل دسترسی خواهد بود.
-
-اجرای روی سرور (Production)
-برای اجرای روی سرور، ابتدا NGINX_ENV را به production و DOMAIN را با دامنه واقعی خود جایگزین کنید. سپس دستور زیر را اجرا کنید:
-
-docker-compose up --build -d
-
-دسترسی: برنامه شما از طریق آدرس دامنه (مثلاً https://your_domain.com) در دسترس خواهد بود.
-
-۳. مدیریت کاربران
-نام کاربری و کلمه عبور پیش‌فرض برای لاگین در بک‌اند admin و admin هستند.
-
-پس از ورود، می‌توانید به صفحه مدیریت کاربران رفته و کاربران جدید ایجاد کنید و رمز عبور آن‌ها را تغییر دهید.
+فایل docker-compose.yml از چند متغیر محیطی استفاده می‌کند. قبل از اجرای پروژه، آن‌ها را در فایل .env یا در خط فرمان تعیین کنید:
+نام متغیر	توضیح	مقدار نمونه
+NGINX_ENV	مشخص می‌کند Nginx در حالت توسعه (development) یا تولید (production) اجرا شود.	development یا production
+DOMAIN	نام دامنه برای محیط تولید. در محیط توسعه مقدار localhost کافی است.	example.com
+JWT_SECRET	کلید مخفی برای امضای توکن دسترسی (access token).	یک رشته‌ی تصادفی و طولانی
+JWT_REFRESH_SECRET	کلید مخفی برای امضای توکن رفرش (refresh token).	یک رشته‌ی تصادفی و طولانی
+ALLOWED_ORIGINS	لیست دامنه‌هایی که اجازهٔ دسترسی CORS دارند (با کاما جدا کنید).	http://localhost,http://localhost:3000
+می‌توانید این متغیرها را در فایل .env در ریشهٔ پروژه قرار دهید تا به صورت خودکار توسط Docker Compose بارگذاری شوند.
+اجرای پروژه در محیط توسعه
+در این حالت کل سرویس‌ها داخل ماشین خودتان اجرا می‌شوند و ارتباط‌ها با HTTP انجام می‌گیرد. نیازی به SSL و گواهی نیست.
+1.	در فایل .env مقادیر زیر را تنظیم کنید (مقادیر پیش‌فرض کافی است):
+NGINX_ENV=development
+DOMAIN=localhost
+JWT_SECRET=<یک رشته‌ی تصادفی>
+JWT_REFRESH_SECRET=<یک رشته‌ی تصادفی>
+ALLOWED_ORIGINS=http://localhost,http://localhost:3000
+1.	سپس در ریشهٔ پروژه دستور زیر را اجرا کنید:
+docker compose up --build
+این دستور سرویس‌های mongo، backend، frontend (برای توسعه) و nginx را اجرا می‌کند. پس از build، برنامه از طریق آدرس زیر در دسترس است:
+•	Backend API: http://localhost/api
+•	فرانت‌اند (React dev server): http://localhost
+•	اگر قصد توسعهٔ رابط کاربری را دارید، می‌توانید با استفاده از hot‑reload روی پورت 3000 نیز کار کنید؛ اما Nginx به صورت پیش‌فرض درخواست‌ها را به frontend dev server پروکسی می‌کند.
+توجه: در محیط توسعه، ارتباط روی HTTP (پورت 80) انجام می‌شود و نیازی به گواهی SSL نیست. چون همه چیز در ماشین شماست، استفاده از SSL اجباری نیست اما می‌توانید با self‑signed cert یا تنظیمات دیگر آن را فعال کنید.
+اجرای پروژه در محیط تولید
+برای اجرای پروژه روی سرور واقعی و با استفاده از HTTPS، مراحل زیر را دنبال کنید:
+1.	تنظیم متغیرها: در فایل .env یا به‌صورت متغیر محیطی، مقدار NGINX_ENV=production و DOMAIN=<نام_دامنه_شما> را قرار دهید. همچنین حتماً برای JWT_SECRET و JWT_REFRESH_SECRET کلیدهای قوی انتخاب کنید و ALLOWED_ORIGINS را روی دامنهٔ واقعی تنظیم کنید.
+2.	گرفتن گواهی SSL: اگر از سرویس certbot استفاده می‌کنید، می‌توانید با دستورات زیر گواهی رایگان دریافت کنید. در پوشهٔ پروژه (یا روی سرور) اجرا کنید:
+docker compose run --rm certbot certonly --webroot --webroot-path=/var/www/certbot -d <نام_دامنه_شما>
+این دستور پوشه‌های certbot-etc و certbot-var را پر می‌کند. مطمئن شوید پورت 80 در فایروال سرور باز است تا Certbot بتواند چالش‌ها را پاسخ دهد.
+1.	اجرای سرویس‌ها: پس از گرفتن گواهی، دستور زیر را اجرا کنید تا سرویس‌ها در پس‌زمینه بالا بیایند:
+docker compose up --build -d
+حالا سایت شما از طریق https://<نام_دامنه_شما> در دسترس خواهد بود.
+1.	تجديد گواهی‌ها: سرویس certbot به صورت خودکار هر 12 ساعت یک‌بار برای تمدید گواهی اقدام می‌کند. ولوم‌های certbot-etc و certbot-var را پاک نکنید.
+ساختار سرویس‌ها
+•	mongo: دیتابیس MongoDB ۷ که داده‌ها را در ولومی به نام mongo_data نگهداری می‌کند.
+•	backend: سرور Node.js/Express؛ روی پورت 5000 در داخل کانتینر اجرا می‌شود و APIها از مسیر /api قابل دسترسی هستند. این سرویس به MongoDB متصل می‌شود و JWT را با کلیدهای داده‌شده امضا می‌کند.
+•	frontend: در حالت توسعه، یک dev server React راه‌اندازی می‌کند (پورت 3000) و Nginx درخواست‌ها را به آن پروکسی می‌کند. در حالت تولید از این سرویس استفاده نمی‌شود و build نهایی در کانتینر nginx سرو می‌شود.
+•	nginx: درخواست‌های ورودی را مدیریت می‌کند. در حالت توسعه، به dev server و backend پروکسی می‌کند. در حالت تولید، فایل‌های build ری‌اکت را به‌صورت استاتیک سرو کرده و /api را به backend پروکسی می‌کند. همچنین SSL termination در این سرویس انجام می‌شود.
+•	certbot: (اختیاری) برای دریافت و تمدید گواهی‌های Let’s Encrypt استفاده می‌شود.
+نکات امنیتی
+•	همیشه برای JWT_SECRET و JWT_REFRESH_SECRET از مقادیر طولانی و غیرقابل حدس استفاده کنید.
+•	در حالت تولید، CORS را محدود به دامنهٔ واقعی خود کنید (ALLOWED_ORIGINS).
+•	سرویس backend در حالت production روی پورت 5000 فقط از طریق شبکهٔ داخلی (bridge) در دسترس است و از بیرون قابل دسترسی نیست؛ تمام درخواست‌ها باید از طریق Nginx عبور کنند.
+مدیریت کاربران و تنظیمات
+پس از اجرای پروژه:
+1.	برای ورود به پنل، از نام کاربری و رمز عبوری که در پایگاه داده تعریف کرده‌اید استفاده کنید؛ پیش‌فرض در اولین run ممکن است کاربری به نام admin ایجاد شود. اگر نیست، می‌توانید از طریق API /api/users کاربر جدید بسازید.
+2.	پس از ورود، می‌توانید از بخش مدیریت کاربران، کاربران جدید بسازید یا رمز آن‌ها را تغییر دهید.
+3.	تنظیمات پیش‌فرض قیمت‌گذاری (نرخ ساعتی، هزینه خدمات، مالیات، و ...) را از طریق صفحه تنظیمات (/settings) به‌روز کنید. این تنظیمات در MongoDB ذخیره می‌شود.
+سوال متداول
+آیا در محیط توسعه به SSL نیاز دارم؟
+خیر. در محیط توسعه (NGINX_ENV=development) پروژه روی localhost یا IP لوکال شما اجرا می‌شود و تمام ارتباط‌ها با HTTP انجام می‌شود. چون همه چیز در ماشین شماست و هیچ کاربر دیگری از طریق اینترنت به آن دسترسی ندارد، نیازی به SSL نیست. اگر بخواهید می‌توانید خودتان یک گواهی self‑signed ایجاد کنید و کانفیگ Nginx را مطابق آن تغییر دهید، اما برای توسعه و تست الزامی نیست.
+________________________________________

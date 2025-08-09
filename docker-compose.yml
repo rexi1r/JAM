@@ -1,7 +1,5 @@
-# ============================
-# docker-compose.yml (یک‌پارچه برای dev/prod)
-# ============================
 version: "3.9"
+
 services:
   mongo:
     image: mongo:7
@@ -23,7 +21,7 @@ services:
       - mongo
     networks: [app]
 
-  # فقط در توسعه لازم است؛ در prod از سرویس nginx (serve stage) برای استاتیک استفاده می‌کنیم
+  # سرویس فرانت تنها در محیط توسعه build و اجرا می‌شود
   frontend:
     build:
       context: .
@@ -34,7 +32,10 @@ services:
     networks: [app]
 
   nginx:
-    image: nginx:1.27-alpine
+    # استفاده از Dockerfile سفارشی nginx
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
     depends_on:
       - backend
     ports:
@@ -44,17 +45,14 @@ services:
       - NGINX_ENV=${NGINX_ENV:-development}
       - DOMAIN=${DOMAIN:-localhost}
     volumes:
-      # template و entrypoint
-      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - ./nginx/entrypoint.sh:/docker-entrypoint.d/99-envsubst.sh:ro
-      # گواهی‌ها (اختیاری –‌ در صورت استفاده از certbot)
+      # گواهی‌ها (اختیاری – در صورت استفاده از certbot)
       - certbot-etc:/etc/letsencrypt
       - certbot-var:/var/www/certbot
-      # اگر می‌خواهید استاتیک‌ها را همین‌جا سرو کنید (prod):
+      # خروجی build فرانت‌اند (برای prod)
       - ./frontend/build:/usr/share/nginx/html:ro
     networks: [app]
 
-  # اختیاری: دریافت/نوسازی گواهی‌ها
+  # سرویس تجدید گواهی‌ها (اختیاری)
   certbot:
     image: certbot/certbot
     volumes:

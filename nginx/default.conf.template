@@ -1,12 +1,6 @@
 # ============================
-# nginx/default.conf.template  (use with envsubst)
+# nginx/default.conf.template
 # ============================
-# تغییرات کلیدی نسبت به نسخه فعلی:
-# - حذف if داخل بلاک server و استفاده از یک template با env vars
-# - سرو استاتیک فرانت در prod و پروکسی فقط برای /api
-# - پشتیبانی از HTTP->HTTPS ریدایرکت فقط در prod
-# - بلوک اختصاصی ACME برای certbot
-# - هدرهای امنیتی پایه و timeouts معقول
 
 map $http_upgrade $connection_upgrade { default upgrade; '' close; }
 
@@ -14,7 +8,7 @@ server {
   listen 80;
   server_name ${DOMAIN:-localhost};
 
-  # ACME challenge for certbot
+  # مسیر چالش certbot
   location ^~ /.well-known/acme-challenge/ {
     root /var/www/certbot;
   }
@@ -24,7 +18,7 @@ server {
     return 301 https://$host$request_uri;
   }
 
-  # Dev: پروکسی به فرانت dev سرور
+  # Dev: پروکسی به سرور frontend و backend
   if ($NGINX_ENV != "production") {
     location /api/ {
       proxy_pass http://backend:5000/;
@@ -32,9 +26,6 @@ server {
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_read_timeout 60s;
-      proxy_connect_timeout 5s;
-      proxy_send_timeout 60s;
       proxy_http_version 1.1;
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection $connection_upgrade;
@@ -45,9 +36,6 @@ server {
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_read_timeout 60s;
-      proxy_connect_timeout 5s;
-      proxy_send_timeout 60s;
       proxy_http_version 1.1;
       proxy_set_header Upgrade $http_upgrade;
       proxy_set_header Connection $connection_upgrade;
@@ -60,7 +48,6 @@ server {
   listen 443 ssl http2;
   server_name ${DOMAIN:-localhost};
 
-  # Certificates (mounted by certbot)
   ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
   ssl_session_timeout 1d;
@@ -68,28 +55,25 @@ server {
   ssl_protocols TLSv1.2 TLSv1.3;
   ssl_prefer_server_ciphers off;
 
-  # Security headers (basic)
+  # هدرهای امنیتی پایه
   add_header X-Frame-Options SAMEORIGIN always;
   add_header X-Content-Type-Options nosniff always;
   add_header Referrer-Policy no-referrer-when-downgrade always;
   add_header X-XSS-Protection "1; mode=block" always;
 
-  # فقط /api را پروکسی کن
+  # فقط مسیر /api را پروکسی کن
   location /api/ {
     proxy_pass http://backend:5000/;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_read_timeout 60s;
-    proxy_connect_timeout 5s;
-    proxy_send_timeout 60s;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection $connection_upgrade;
   }
 
-  # استاتیک فرانت‌اند (خروجی build)
+  # سرو فایل‌های build ری‌اکت
   root /usr/share/nginx/html;
   index index.html;
   location / {
