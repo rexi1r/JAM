@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'IRANSans';
+  src: url('/fonts/IRANSansX-Regular.woff2') format('woff2'),
+       url('/fonts/IRANSansX-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -80,5 +88,6 @@
     /* Use CSS variables directly instead of @apply to avoid unknown utility errors */
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    font-family: 'IRANSans', sans-serif;
   }
 }
