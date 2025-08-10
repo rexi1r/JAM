@@ -1,10 +1,6 @@
 # ============================
 # frontend/Dockerfile
 # ============================
-# Set a custom label for the image
-LABEL maintainer="rexi1r rexi1r@yahoo.com"
-LABEL version="1.0"
-LABEL description="JAM FRONT END"
 
 # Build ری‌اکت و سرو استاتیک با Nginx
 FROM node:20-alpine AS build
