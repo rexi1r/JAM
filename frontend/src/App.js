@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { create } from "zustand";
+import "./index.css";
 
 // Shadcn UI components and Lucide-React for icons
 import { Button } from "./components/ui/button";
@@ -2037,18 +2038,6 @@ export default function App() {
   // ------------------------------------------------------------------
   return (
     <div dir="rtl">
-      <style>
-        {`
-          @font-face {
-            font-family: 'IRANSans';
-            src: url('/fonts/IRANSansX-Regular.woff2') format('woff2'),
-                 url('/fonts/IRANSansX-Regular.woff') format('woff');
-            font-weight: normal;
-            font-style: normal;
-          }
-          body, .font-iransans { font-family: 'IRANSans', sans-serif; }
-        `}
-      </style>
       {renderPage()}
     </div>
   );
