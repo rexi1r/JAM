@@ -86,10 +86,17 @@ const loginLimiter = rateLimit({
 });
 
 // --- Env guards
+const {
+  MONGO_URI: mongoUriEnv,
+  MONGO_INITDB_ROOT_USERNAME,
+  MONGO_INITDB_ROOT_PASSWORD,
+  JWT_SECRET,
+  JWT_REFRESH_SECRET,
+} = process.env;
+
 const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://localhost:27017/contracts";
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+  mongoUriEnv ||
+  `mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongo:27017/contracts?authSource=admin`;
 if (!JWT_SECRET) throw new Error("JWT_SECRET must be defined");
 if (!JWT_REFRESH_SECRET) throw new Error("JWT_REFRESH_SECRET must be defined");
 
