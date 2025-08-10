@@ -1,6 +1,11 @@
 # ============================
 # backend/Dockerfile
 # ============================
+# Set a custom label for the image
+LABEL maintainer="rexi1r rexi1r@yahoo.com"
+LABEL version="1.0"
+LABEL description="JAM BACKEND"
+
 # Multi-stage اختیاری نیست، ولی تصویر را کوچک و امن می‌کند
 FROM node:20-alpine AS deps
 WORKDIR /app

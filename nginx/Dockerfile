@@ -1,3 +1,8 @@
+# Set a custom label for the image
+LABEL maintainer="rexi1r rexi1r@yahoo.com"
+LABEL version="1.0"
+LABEL description="JAM NGINX"
+
 FROM nginx:1.27-alpine
 
 # نصب envsubst (بخشی از gettext)

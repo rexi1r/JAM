@@ -4,6 +4,10 @@ services:
   mongo:
     image: mongo:7
     restart: unless-stopped
+    labels:
+      - "maintainer=rexi1r rexi1r@yahoo.com"
+      - "version=1.0"
+      - "description=JAM MONGODB"
     volumes:
       - mongo_data:/data/db
     networks: [app]
@@ -12,6 +16,10 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    labels:
+      - "maintainer=rexi1r rexi1r@yahoo.com"
+      - "version=1.0"
+      - "description=JAM BACKEND"
     environment:
       NODE_ENV: production
       MONGO_URI: mongodb://mongo:27017/contracts
@@ -27,6 +35,10 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    labels:
+      - "maintainer=rexi1r rexi1r@yahoo.com"
+      - "version=1.0"
+      - "description=JAM FRONT END"
     environment:
       - NGINX_ENV=${NGINX_ENV:-development}
       - DOMAIN=${DOMAIN:-localhost}
@@ -39,6 +51,10 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+    labels:
+      - "maintainer=rexi1r rexi1r@yahoo.com"
+      - "version=1.0"
+      - "description=JAM NGINX"
     depends_on:
       - backend
       - frontend
