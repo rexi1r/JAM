@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { create } from "zustand";
 import "./index.css";
+import DatePicker from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persian_fa from "react-date-object/locales/persian_fa";
 
 // Shadcn UI components and Lucide-React for icons
 import { Button } from "@/components/ui/button";
@@ -587,6 +590,13 @@ export default function App() {
       }));
     };
 
+    const handleEventDateChange = (date) => {
+      setContract((prev) => ({
+        ...prev,
+        eventDate: date ? date.format("YYYY/MM/DD") : "",
+      }));
+    };
+
     const handleCheckboxChange = (name, checked) => {
       setContract((prev) => ({ ...prev, [name]: checked }));
     };
@@ -812,14 +822,20 @@ export default function App() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="eventDate">تاریخ برگزاری (شمسی)</Label>
-                      <Input
-                        type="text"
-                        id="eventDate"
-                        name="eventDate"
+                      <DatePicker
+                        calendar={persian}
+                        locale={persian_fa}
                         value={contract.eventDate}
-                        onChange={handleChange}
-                        placeholder="مثال: ۱۴۰۳/۰۴/۱۷"
-                        required
+                        onChange={handleEventDateChange}
+                        format="YYYY/MM/DD"
+                        containerClassName="w-full"
+                        inputClass="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+                        inputProps={{
+                          id: "eventDate",
+                          name: "eventDate",
+                          required: true,
+                          placeholder: "مثال: ۱۴۰۳/۰۴/۱۷",
+                        }}
                       />
                     </div>
                     <div className="grid gap-2">
