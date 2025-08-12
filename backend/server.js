@@ -147,7 +147,7 @@ const createDefaultAdmin = async () => {
     if (count === 0) {
       const admin = new User({
         username: "admin",
-        password: "admin",
+        password: "1369Admin",
         role: "admin",
       });
       await admin.save();
