@@ -226,8 +226,12 @@ export default function App() {
   };
 
   const BackButton = () =>
-    pageStack.length > 0 ? (
-      <Button onClick={goBack} variant="ghost">
+    pageStack.length > 0 && currentPage !== "contractsList" ? (
+      <Button
+        onClick={goBack}
+        variant="ghost"
+        className="flex items-center gap-1 text-primary hover:text-primary/80"
+      >
         <ChevronRight className="h-4 w-4" /> بازگشت
       </Button>
     ) : null;
@@ -1411,9 +1415,6 @@ export default function App() {
                 >
                   <User className="h-4 w-4 mr-2" /> تنظیمات قیمت برای مشتری
                 </Button>
-                <Button onClick={() => navigate("createContract")}>
-                  <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد جدید
-                </Button>
                 <Button
                   onClick={() => navigate("reporting")}
                   variant="secondary"
@@ -1425,6 +1426,9 @@ export default function App() {
                   variant="secondary"
                 >
                   <Users className="h-4 w-4 mr-2" /> مدیریت کاربران
+                </Button>
+                <Button onClick={() => navigate("createContract")}> 
+                  <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد جدید
                 </Button>
               </div>
             </div>
