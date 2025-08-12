@@ -180,6 +180,15 @@ const CustomerSettings = mongoose.model("CustomerSettings", settingsSchema);
 const contractSchema = new mongoose.Schema(
   {
     contractOwner: { type: String, required: true, index: true },
+    groomFirstName: { type: String, required: true },
+    groomLastName: { type: String, required: true },
+    groomNationalId: { type: String, required: true },
+    spouseFirstName: { type: String, required: true },
+    spouseLastName: { type: String, required: true },
+    spouseNationalId: { type: String, required: true },
+    address: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    email: { type: String, default: "" },
     inviteesCount: { type: Number, default: 0 },
     eventDate: { type: String, required: true, index: true },
     startTime: { type: String, required: true },
@@ -437,6 +446,15 @@ app.post(
   celebrate({
     [Segments.BODY]: Joi.object({
       contractOwner: Joi.string().required(),
+      groomFirstName: Joi.string().required(),
+      groomLastName: Joi.string().required(),
+      groomNationalId: Joi.string().required(),
+      spouseFirstName: Joi.string().required(),
+      spouseLastName: Joi.string().required(),
+      spouseNationalId: Joi.string().required(),
+      address: Joi.string().allow("").default(""),
+      phone: Joi.string().allow("").default(""),
+      email: Joi.string().email().allow("").default(""),
       inviteesCount: Joi.number().min(0).default(0),
       eventDate: Joi.string().required(),
       startTime: Joi.string().required(),

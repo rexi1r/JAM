@@ -514,6 +514,15 @@ export default function App() {
 
     const [contract, setContract] = useState({
       contractOwner: "",
+      groomFirstName: "",
+      groomLastName: "",
+      groomNationalId: "",
+      spouseFirstName: "",
+      spouseLastName: "",
+      spouseNationalId: "",
+      address: "",
+      phone: "",
+      email: "",
       inviteesCount: 0,
       eventDate: "",
       startTime: "",
@@ -842,6 +851,102 @@ export default function App() {
                         value={contract.contractOwner}
                         onChange={handleChange}
                         required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="groomFirstName">نام داماد</Label>
+                      <Input
+                        type="text"
+                        id="groomFirstName"
+                        name="groomFirstName"
+                        value={contract.groomFirstName}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="groomLastName">نام خانوادگی داماد</Label>
+                      <Input
+                        type="text"
+                        id="groomLastName"
+                        name="groomLastName"
+                        value={contract.groomLastName}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="groomNationalId">کد ملی داماد</Label>
+                      <Input
+                        type="text"
+                        id="groomNationalId"
+                        name="groomNationalId"
+                        value={contract.groomNationalId}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="spouseFirstName">نام همسر</Label>
+                      <Input
+                        type="text"
+                        id="spouseFirstName"
+                        name="spouseFirstName"
+                        value={contract.spouseFirstName}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="spouseLastName">نام خانوادگی همسر</Label>
+                      <Input
+                        type="text"
+                        id="spouseLastName"
+                        name="spouseLastName"
+                        value={contract.spouseLastName}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="spouseNationalId">کد ملی همسر</Label>
+                      <Input
+                        type="text"
+                        id="spouseNationalId"
+                        name="spouseNationalId"
+                        value={contract.spouseNationalId}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="address">آدرس</Label>
+                      <Input
+                        type="text"
+                        id="address"
+                        name="address"
+                        value={contract.address}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="phone">شماره تماس</Label>
+                      <Input
+                        type="text"
+                        id="phone"
+                        name="phone"
+                        value={contract.phone}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="email">ایمیل</Label>
+                      <Input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={contract.email}
+                        onChange={handleChange}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -1526,6 +1631,23 @@ export default function App() {
                                   <h4 className="font-semibold border-b pb-1">
                                     اطلاعات کلی
                                   </h4>
+                                  <p>
+                                    <strong>نام داماد:</strong>{" "}
+                                    {c.groomFirstName} {c.groomLastName} ({c.groomNationalId})
+                                  </p>
+                                  <p>
+                                    <strong>نام همسر:</strong>{" "}
+                                    {c.spouseFirstName} {c.spouseLastName} ({c.spouseNationalId})
+                                  </p>
+                                  <p>
+                                    <strong>آدرس:</strong> {c.address}
+                                  </p>
+                                  <p>
+                                    <strong>شماره تماس:</strong> {c.phone}
+                                  </p>
+                                  <p>
+                                    <strong>ایمیل:</strong> {c.email}
+                                  </p>
                                   <p>
                                     <strong>تعداد مهمان:</strong>{" "}
                                     {c.inviteesCount}
