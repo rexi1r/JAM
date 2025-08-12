@@ -1931,6 +1931,7 @@ function UserManagement({ showError, navigate, BackButton }) {
     password: "",
     role: "user",
   });
+  const [openPasswordDialog, setOpenPasswordDialog] = useState(null);
 
   const fetchUsers = async () => {
     try {
@@ -1975,11 +1976,14 @@ function UserManagement({ showError, navigate, BackButton }) {
       if (res.ok) {
         alert("رمز عبور با موفقیت تغییر کرد.");
         fetchUsers();
+        return true;
       } else {
         showError("خطا در تغییر رمز عبور.");
+        return false;
       }
     } catch (e) {
       showError("خطای سرور.");
+      return false;
     }
   };
 
@@ -2047,7 +2051,12 @@ function UserManagement({ showError, navigate, BackButton }) {
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{user.role || "user"}</TableCell>
                   <TableCell>
-                    <Dialog>
+                    <Dialog
+                      open={openPasswordDialog === user._id}
+                      onOpenChange={(open) =>
+                        setOpenPasswordDialog(open ? user._id : null)
+                      }
+                    >
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm">
                           <Key className="h-4 w-4 ml-2" /> تغییر رمز عبور
@@ -2060,10 +2069,11 @@ function UserManagement({ showError, navigate, BackButton }) {
                           </DialogTitle>
                         </DialogHeader>
                         <form
-                          onSubmit={(e) => {
+                          onSubmit={async (e) => {
                             e.preventDefault();
                             const np = e.target.elements.newPassword.value;
-                            handleUpdatePassword(user._id, np);
+                            const ok = await handleUpdatePassword(user._id, np);
+                            if (ok) setOpenPasswordDialog(null);
                           }}
                         >
                           <div className="grid gap-2">
