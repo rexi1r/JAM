@@ -193,6 +193,9 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState("login");
   const [pageStack, setPageStack] = useState([]);
   const [loadingInitialData, setLoadingInitialData] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const showError = (message) => setErrorMessage(message);
 
   const navigate = (page) => {
     setPageStack((s) => [...s, currentPage]);
@@ -297,10 +300,10 @@ export default function App() {
           await fetchAllData();
           navigate("contractsList");
         } else {
-          alert(data.message || "اعتبارسنجی ناموفق");
+          showError(data.message || "اعتبارسنجی ناموفق");
         }
       } catch (e) {
-        alert("Server error. Please try again.");
+        showError("Server error. Please try again.");
       } finally {
         setPending(false);
       }
@@ -400,10 +403,10 @@ export default function App() {
           alert("تنظیمات با موفقیت ذخیره شد.");
         } else {
           const t = await res.text();
-          alert(t || "خطا در ذخیره تنظیمات.");
+          showError(t || "خطا در ذخیره تنظیمات.");
         }
       } catch (e) {
-        alert("خطای سرور.");
+        showError("خطای سرور.");
       }
     };
 
@@ -736,10 +739,10 @@ export default function App() {
           alert("قرارداد با موفقیت ثبت شد.");
         } else {
           const t = await res.text();
-          alert(t || "خطا در ثبت قرارداد.");
+          showError(t || "خطا در ثبت قرارداد.");
         }
       } catch (e) {
-        alert("خطای سرور.");
+        showError("خطای سرور.");
       } finally {
         setIsSaving(false);
       }
@@ -747,7 +750,7 @@ export default function App() {
 
     // NOTE: For security, this feature must be implemented via backend proxy
     const generateOfferLetter = async () => {
-      alert(
+      showError(
         "این قابلیت باید از طریق بک‌اند امن پیاده‌سازی شود (کلید API در فرانت نگهداری نمی‌شود)."
       );
     };
@@ -1926,10 +1929,10 @@ export default function App() {
           fetchUsers();
           setNewUser({ username: "", password: "", role: "user" });
         } else {
-          alert("خطا در ایجاد کاربر.");
+          showError("خطا در ایجاد کاربر.");
         }
       } catch (e) {
-        alert("خطای سرور.");
+        showError("خطای سرور.");
       }
     };
 
@@ -1943,10 +1946,10 @@ export default function App() {
           alert("رمز عبور با موفقیت تغییر کرد.");
           fetchUsers();
         } else {
-          alert("خطا در تغییر رمز عبور.");
+          showError("خطا در تغییر رمز عبور.");
         }
       } catch (e) {
-        alert("خطای سرور.");
+        showError("خطای سرور.");
       }
     };
 
@@ -2070,6 +2073,11 @@ export default function App() {
   return (
     <div dir="rtl">
       {renderPage()}
+      {errorMessage && (
+        <Modal title="خطا" onClose={() => setErrorMessage("")}>
+          <p>{errorMessage}</p>
+        </Modal>
+      )}
     </div>
   );
 }
