@@ -333,6 +333,9 @@ app.post(
       return res.status(201).json({ message: "User created successfully" });
     } catch (e) {
       console.error(e);
+      if (e.code === 11000) {
+        return res.status(400).json({ message: "User already exists" });
+      }
       return res.status(500).send("Server error");
     }
   }
