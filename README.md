@@ -113,3 +113,24 @@ docker compose up --build -d
 ### آیا در محیط توسعه به SSL نیاز دارم؟
 
 خیر. در محیط توسعه پروژه روی localhost یا IP لوکال اجرا می‌شود و نیازی به SSL نیست.
+
+## راه‌اندازی فرانت‌اند (Vite + Tailwind v4 + shadcn)
+
+بخش فرانت‌اند با Vite و TailwindCSS v4 پیکربندی شده است و از کتابخانه‌ی shadcn برای
+کامپوننت‌ها استفاده می‌کند. برای اجرا:
+
+1. نصب وابستگی‌ها:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. اجرای سرور توسعه:
+   ```bash
+   npm run dev
+   # یا روی شبکه:
+   npm run dev -- --host
+   ```
+
+Alias `@` به مسیر `src/` اشاره می‌کند (`vite.config.mjs` و `jsconfig.json`) و حالت RTL در
+`index.html` فعال است. فایل `src/index.css` شامل پیکربندی کامل Tailwind و توکن‌های
+رنگی پایه است.
