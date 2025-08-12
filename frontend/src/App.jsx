@@ -191,9 +191,35 @@ export default function App() {
     setUsers,
   } = useStore();
   const [currentPage, setCurrentPage] = useState("login");
+  const [pageStack, setPageStack] = useState([]);
   const [loadingInitialData, setLoadingInitialData] = useState(true);
 
-  const navigate = (page) => setCurrentPage(page);
+  const navigate = (page) => {
+    setPageStack((s) => [...s, currentPage]);
+    setCurrentPage(page);
+  };
+
+  const goBack = () => {
+    setPageStack((s) => {
+      const newStack = [...s];
+      const prev = newStack.pop();
+      if (prev) setCurrentPage(prev);
+      return newStack;
+    });
+  };
+
+  const handleLogout = () => {
+    setPageStack([]);
+    logout();
+    setCurrentPage("login");
+  };
+
+  const BackButton = () =>
+    pageStack.length > 0 ? (
+      <Button onClick={goBack} variant="ghost" className="mb-4">
+        <ChevronRight className="h-4 w-4" /> بازگشت
+      </Button>
+    ) : null;
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -281,7 +307,8 @@ export default function App() {
     };
 
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+        <BackButton />
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-3xl font-bold text-center">
@@ -382,6 +409,7 @@ export default function App() {
 
     return (
       <div className="container mx-auto p-8 bg-gray-50 min-h-screen font-iransans">
+        <BackButton />
         <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
           {title}
         </h1>
@@ -726,6 +754,7 @@ export default function App() {
 
     return (
       <div className="container mx-auto p-8 min-h-screen font-iransans">
+        <BackButton />
         <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
           ثبت قرارداد جدید
         </h1>
@@ -1312,7 +1341,6 @@ export default function App() {
   // ------------------------------------------------------------------
   const ContractsList = () => {
     const contracts = useStore((state) => state.contracts);
-    const logout = useStore((state) => state.logout);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPageNumber, setCurrentPageNumber] = useState(1);
     const contractsPerPage = 5;
@@ -1336,6 +1364,7 @@ export default function App() {
 
     return (
       <div className="container mx-auto p-8 min-h-screen font-iransans">
+        <BackButton />
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-extrabold text-gray-800">
             لیست قراردادها
@@ -1345,7 +1374,7 @@ export default function App() {
               <RefreshCcw className="h-4 w-4 mr-2" />
               به‌روزرسانی
             </Button>
-            <Button onClick={logout} variant="destructive">
+            <Button onClick={handleLogout} variant="destructive">
               خروج
             </Button>
           </div>
@@ -1765,6 +1794,7 @@ export default function App() {
 
     return (
       <div className="container mx-auto p-8 min-h-screen font-iransans">
+        <BackButton />
         <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
           گزارش‌گیری
         </h1>
@@ -1926,6 +1956,7 @@ export default function App() {
 
     return (
       <div className="container mx-auto p-8 min-h-screen font-iransans">
+        <BackButton />
         <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
           مدیریت کاربران
         </h1>
