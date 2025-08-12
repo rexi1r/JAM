@@ -567,6 +567,7 @@ export default function App() {
       dinnerType: "",
       discount: 0,
       extraDetails: "",
+      extraItems: [],
       customerEntryFee: "",
       customerServiceFee: "",
       customerTax: "",
@@ -677,6 +678,30 @@ export default function App() {
       setContract((prev) => ({ ...prev, [name]: parsedValue }));
     };
 
+    const addExtraItem = () => {
+      setContract((prev) => ({
+        ...prev,
+        extraItems: [...prev.extraItems, { title: "", price: 0 }],
+      }));
+    };
+
+    const handleExtraItemChange = (index, field, value) => {
+      setContract((prev) => {
+        const items = [...prev.extraItems];
+        const val = field === "price" ? Math.max(0, parseFloat(value) || 0) : value;
+        items[index] = { ...items[index], [field]: val };
+        return { ...prev, extraItems: items };
+      });
+    };
+
+    const removeExtraItem = (index) => {
+      setContract((prev) => {
+        const items = [...prev.extraItems];
+        items.splice(index, 1);
+        return { ...prev, extraItems: items };
+      });
+    };
+
     const calculateEntryFee = (start, end, rate) => {
       if (!start || !end || !start.includes(":") || !end.includes(":"))
         return rate;
@@ -731,6 +756,11 @@ export default function App() {
             next.dinnerCount * customerSettings.defaultDinnerPricePerPerson;
         else if (!next.includeDinner) next.customerDinnerPrice = 0;
 
+        const extraItemsTotal = (next.extraItems || []).reduce(
+          (sum, item) => sum + (parseFloat(item.price) || 0),
+          0
+        );
+
         const customerTotalWithoutTax =
           (next.customerEntryFee || 0) +
           (next.customerServiceFee || 0) +
@@ -740,7 +770,8 @@ export default function App() {
           (next.customerCandlePrice || 0) +
           (next.customerFlowerPrice || 0) +
           (next.customerDinnerPrice || 0) +
-          (next.customerWaterPrice || 0) -
+          (next.customerWaterPrice || 0) +
+          extraItemsTotal -
           (parseFloat(next.discount) || 0);
         next.customerTax =
           customerTotalWithoutTax * customerSettings.defaultTaxRate;
@@ -790,7 +821,8 @@ export default function App() {
           (next.myCandlePrice || 0) +
           (next.myFlowerPrice || 0) +
           (next.myDinnerPrice || 0) +
-          (next.myWaterPrice || 0) -
+          (next.myWaterPrice || 0) +
+          extraItemsTotal -
           (parseFloat(next.discount) || 0);
         next.myTax = myTotalWithoutTax * mySettings.defaultTaxRate;
         next.myTotalCost = myTotalWithoutTax + next.myTax;
@@ -807,6 +839,7 @@ export default function App() {
       contract.waterCount,
       contract.dinnerCount,
       contract.discount,
+      contract.extraItems,
       contract.includeCandle,
       contract.includeFlower,
       contract.includeJuice,
@@ -1498,6 +1531,46 @@ export default function App() {
                       rows="3"
                     />
                   </div>
+                </div>
+                <div className="mt-6">
+                  <h3 className="font-bold mb-2">آیتم‌های اضافی</h3>
+                  {contract.extraItems.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2 mb-2">
+                      <Input
+                        placeholder="عنوان"
+                        value={item.title}
+                        onChange={(e) =>
+                          handleExtraItemChange(idx, "title", e.target.value)
+                        }
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="قیمت"
+                        value={item.price}
+                        onChange={(e) =>
+                          handleExtraItemChange(idx, "price", e.target.value)
+                        }
+                        className="w-40"
+                        min="0"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => removeExtraItem(idx)}
+                      >
+                        حذف
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={addExtraItem}
+                    className="mt-2"
+                  >
+                    افزودن آیتم
+                  </Button>
                 </div>
               </div>
 
