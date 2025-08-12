@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -150,6 +151,7 @@ const Modal = ({ title, children, onClose, onCopy }) => (
     <DialogContent className="sm:max-w-[800px] max-w-[95%]">
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
+        <DialogDescription className="sr-only">{title}</DialogDescription>
       </DialogHeader>
       <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg overflow-y-auto max-h-[70vh]">
         {children}
@@ -1905,187 +1907,17 @@ export default function App() {
       case "reporting":
         return <Reporting />; // fixed missing component
       case "userManagement":
-        return <UserManagement />;
+        return (
+          <UserManagement
+            showError={showError}
+            navigate={navigate}
+            BackButton={BackButton}
+          />
+        );
       default:
         return <ContractsList />;
     }
   };
-
-  // ------------------------------------------------------------------
-  // User Management
-  // ------------------------------------------------------------------
-  function UserManagement() {
-    const { users, setUsers } = useStore();
-    const [newUser, setNewUser] = useState({
-      username: "",
-      password: "",
-      role: "user",
-    });
-
-    const fetchUsers = async () => {
-      try {
-        const res = await fetchWithAuth(`${API_BASE_URL}/api/users`);
-        if (res.ok) {
-          const data = await res.json();
-          setUsers(data);
-        } else {
-          showError("خطا در دریافت کاربران.");
-        }
-      } catch (e) {
-        showError("خطای سرور.");
-      }
-    };
-
-    const handleCreateUser = async (e) => {
-      e.preventDefault();
-      try {
-        const res = await fetchWithAuth(`${API_BASE_URL}/api/users`, {
-          method: "POST",
-          body: JSON.stringify(newUser),
-        });
-        if (res.ok) {
-          alert("کاربر جدید با موفقیت ایجاد شد.");
-          fetchUsers();
-          setNewUser({ username: "", password: "", role: "user" });
-        } else {
-          const t = await res.json().catch(() => ({}));
-          showError(t.message || "خطا در ایجاد کاربر.");
-        }
-      } catch (e) {
-        showError("خطای سرور.");
-      }
-    };
-
-    const handleUpdatePassword = async (id, newPassword) => {
-      try {
-        const res = await fetchWithAuth(`${API_BASE_URL}/api/users/${id}`, {
-          method: "PUT",
-          body: JSON.stringify({ password: newPassword }),
-        });
-        if (res.ok) {
-          alert("رمز عبور با موفقیت تغییر کرد.");
-          fetchUsers();
-        } else {
-          showError("خطا در تغییر رمز عبور.");
-        }
-      } catch (e) {
-        showError("خطای سرور.");
-      }
-    };
-
-    useEffect(() => {
-      fetchUsers();
-    }, []);
-
-    return (
-      <div className="container mx-auto p-8 min-h-screen font-iransans">
-        <BackButton />
-        <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
-          مدیریت کاربران
-        </h1>
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader>
-            <CardTitle>ایجاد کاربر جدید</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreateUser} className="grid gap-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="newUsername">نام کاربری</Label>
-                  <Input
-                    id="newUsername"
-                    value={newUser.username}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, username: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="newPassword">رمز عبور</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, password: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-              <Button type="submit">ثبت کاربر جدید</Button>
-            </form>
-          </CardContent>
-        </Card>
-        <Card className="max-w-4xl mx-auto mt-8">
-          <CardHeader>
-            <CardTitle>لیست کاربران</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">نام کاربری</TableHead>
-                  <TableHead className="text-right">سطح دسترسی</TableHead>
-                  <TableHead className="text-right">عملیات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user._id}>
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>{user.role || "user"}</TableCell>
-                    <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Key className="h-4 w-4 ml-2" /> تغییر رمز عبور
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>
-                              تغییر رمز عبور برای {user.username}
-                            </DialogTitle>
-                          </DialogHeader>
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              const np = e.target.elements.newPassword.value;
-                              handleUpdatePassword(user._id, np);
-                            }}
-                          >
-                            <div className="grid gap-2">
-                              <Label htmlFor="newPassword">رمز عبور جدید</Label>
-                              <Input
-                                id="newPassword"
-                                name="newPassword"
-                                type="password"
-                                required
-                              />
-                            </div>
-                            <Button type="submit" className="mt-4 w-full">
-                              ذخیره
-                            </Button>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        <div className="mt-8 flex justify-end">
-          <Button onClick={() => navigate("contractsList")} variant="outline">
-            بازگشت
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   // ------------------------------------------------------------------
   // Root
@@ -2101,3 +1933,180 @@ export default function App() {
     </div>
   );
 }
+
+// ------------------------------------------------------------------
+// User Management (moved outside to prevent remount on parent renders)
+// ------------------------------------------------------------------
+function UserManagement({ showError, navigate, BackButton }) {
+  const { users, setUsers } = useStore();
+  const [newUser, setNewUser] = useState({
+    username: "",
+    password: "",
+    role: "user",
+  });
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/users`);
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      } else {
+        showError("خطا در دریافت کاربران.");
+      }
+    } catch (e) {
+      showError("خطای سرور.");
+    }
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/users`, {
+        method: "POST",
+        body: JSON.stringify(newUser),
+      });
+      if (res.ok) {
+        alert("کاربر جدید با موفقیت ایجاد شد.");
+        fetchUsers();
+        setNewUser({ username: "", password: "", role: "user" });
+      } else {
+        const t = await res.json().catch(() => ({}));
+        showError(t.message || "خطا در ایجاد کاربر.");
+      }
+    } catch (e) {
+      showError("خطای سرور.");
+    }
+  };
+
+  const handleUpdatePassword = async (id, newPassword) => {
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/users/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ password: newPassword }),
+      });
+      if (res.ok) {
+        alert("رمز عبور با موفقیت تغییر کرد.");
+        fetchUsers();
+      } else {
+        showError("خطا در تغییر رمز عبور.");
+      }
+    } catch (e) {
+      showError("خطای سرور.");
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  return (
+    <div className="container mx-auto p-8 min-h-screen font-iransans">
+      <BackButton />
+      <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
+        مدیریت کاربران
+      </h1>
+      <Card className="max-w-4xl mx-auto">
+        <CardHeader>
+          <CardTitle>ایجاد کاربر جدید</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreateUser} className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="newUsername">نام کاربری</Label>
+                <Input
+                  id="newUsername"
+                  value={newUser.username}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, username: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="newPassword">رمز عبور</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, password: e.target.value })
+                  }
+                  required
+                />
+              </div>
+            </div>
+            <Button type="submit">ثبت کاربر جدید</Button>
+          </form>
+        </CardContent>
+      </Card>
+      <Card className="max-w-4xl mx-auto mt-8">
+        <CardHeader>
+          <CardTitle>لیست کاربران</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-right">نام کاربری</TableHead>
+                <TableHead className="text-right">سطح دسترسی</TableHead>
+                <TableHead className="text-right">عملیات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user._id}>
+                  <TableCell>{user.username}</TableCell>
+                  <TableCell>{user.role || "user"}</TableCell>
+                  <TableCell>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Key className="h-4 w-4 ml-2" /> تغییر رمز عبور
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>
+                            تغییر رمز عبور برای {user.username}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const np = e.target.elements.newPassword.value;
+                            handleUpdatePassword(user._id, np);
+                          }}
+                        >
+                          <div className="grid gap-2">
+                            <Label htmlFor="newPassword">رمز عبور جدید</Label>
+                            <Input
+                              id="newPassword"
+                              name="newPassword"
+                              type="password"
+                              required
+                            />
+                          </div>
+                          <Button type="submit" className="mt-4 w-full">
+                            ذخیره
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      <div className="mt-8 flex justify-end">
+        <Button onClick={() => navigate("contractsList")} variant="outline">
+          بازگشت
+        </Button>
+      </div>
+    </div>
+  );
+}
+
