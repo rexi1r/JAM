@@ -227,7 +227,7 @@ export default function App() {
 
   const BackButton = () =>
     pageStack.length > 0 ? (
-      <Button onClick={goBack} variant="ghost" className="mb-4">
+      <Button onClick={goBack} variant="ghost">
         <ChevronRight className="h-4 w-4" /> بازگشت
       </Button>
     ) : null;
@@ -468,12 +468,6 @@ export default function App() {
               ))}
             </div>
             <div className="flex justify-end gap-4">
-              <Button
-                onClick={() => navigate("contractsList")}
-                variant="outline"
-              >
-                بازگشت
-              </Button>
               <Button onClick={handleSave}>ذخیره تنظیمات</Button>
             </div>
           </CardContent>
@@ -1339,13 +1333,6 @@ export default function App() {
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => navigate("contractsList")}
-                  >
-                    بازگشت
-                  </Button>
                   <Button type="submit" disabled={isSaving}>
                     {isSaving ? "در حال ذخیره..." : "ثبت قرارداد"}
                   </Button>
@@ -2101,12 +2088,7 @@ function UserManagement({ showError, navigate, BackButton }) {
           </Table>
         </CardContent>
       </Card>
-      <div className="mt-8 flex justify-end">
-        <Button onClick={() => navigate("contractsList")} variant="outline">
-          بازگشت
-        </Button>
-      </div>
+      <div className="mt-8 flex justify-end"></div>
     </div>
   );
 }
-
