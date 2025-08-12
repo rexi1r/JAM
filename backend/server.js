@@ -212,6 +212,15 @@ const contractSchema = new mongoose.Schema(
     dinnerType: { type: String, default: "" },
     discount: { type: Number, default: 0 },
     extraDetails: { type: String, default: "" },
+    extraItems: {
+      type: [
+        {
+          title: { type: String, default: "" },
+          price: { type: Number, default: 0 },
+        },
+      ],
+      default: [],
+    },
     customerTotalCost: { type: Number, default: 0 },
     myTotalCost: { type: Number, default: 0 },
     status: {
@@ -495,6 +504,14 @@ app.post(
       dinnerType: Joi.string().allow("").default(""),
       discount: Joi.number().min(0).default(0),
       extraDetails: Joi.string().allow("").default(""),
+      extraItems: Joi.array()
+        .items(
+          Joi.object({
+            title: Joi.string().required(),
+            price: Joi.number().min(0).required(),
+          })
+        )
+        .default([]),
       customerTotalCost: Joi.number().min(0).default(0),
       myTotalCost: Joi.number().min(0).default(0),
       status: Joi.string()
