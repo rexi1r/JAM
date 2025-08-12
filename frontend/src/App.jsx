@@ -1050,6 +1050,7 @@ export default function App() {
                         type="time"
                         id="startTime"
                         name="startTime"
+                        lang="fa-IR"
                         value={contract.startTime}
                         onChange={handleChange}
                         required
@@ -1061,6 +1062,7 @@ export default function App() {
                         type="time"
                         id="endTime"
                         name="endTime"
+                        lang="fa-IR"
                         value={contract.endTime}
                         onChange={handleChange}
                         required
