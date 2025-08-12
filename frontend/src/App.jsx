@@ -177,6 +177,12 @@ const copyToClipboard = (text) => {
   alert("کپی شد!");
 };
 
+const sanitizeSettings = (settings) => {
+  if (!settings) return {};
+  const { _id, createdAt, updatedAt, __v, ...rest } = settings;
+  return rest;
+};
+
 // ------------------------------------------------------------------
 // MAIN APP
 // ------------------------------------------------------------------
@@ -244,7 +250,7 @@ export default function App() {
         `${API_BASE_URL}/api/settings/my`
       );
       if (mySettingsRes.ok) {
-        const mySettings = await mySettingsRes.json();
+        const mySettings = sanitizeSettings(await mySettingsRes.json());
         useStore.getState().setMySettings(mySettings);
       } else {
         showError("خطا در دریافت تنظیمات قیمت برای خودم.");
@@ -254,7 +260,9 @@ export default function App() {
         `${API_BASE_URL}/api/settings/customer`
       );
       if (customerSettingsRes.ok) {
-        const customerSettings = await customerSettingsRes.json();
+        const customerSettings = sanitizeSettings(
+          await customerSettingsRes.json()
+        );
         useStore.getState().setCustomerSettings(customerSettings);
       } else {
         showError("خطا در دریافت تنظیمات قیمت برای مشتری.");
@@ -379,15 +387,15 @@ export default function App() {
       updateMySettings,
       updateCustomerSettings,
     } = useStore();
-    const initialSettings =
-      settingsType === "my" ? mySettings : customerSettings;
+    const rawSettings = settingsType === "my" ? mySettings : customerSettings;
+    const initialSettings = sanitizeSettings(rawSettings);
     const updateSettings =
       settingsType === "my" ? updateMySettings : updateCustomerSettings;
     const [localSettings, setLocalSettings] = useState(initialSettings || {});
 
     useEffect(() => {
-      setLocalSettings(initialSettings || {});
-    }, [initialSettings]);
+      setLocalSettings(sanitizeSettings(rawSettings) || {});
+    }, [rawSettings]);
 
     const handleChange = (e) => {
       const { name, value } = e.target;
@@ -398,15 +406,16 @@ export default function App() {
 
     const handleSave = async () => {
       try {
+        const payload = sanitizeSettings(localSettings);
         const res = await fetchWithAuth(
           `${API_BASE_URL}/api/settings/${settingsType}`,
           {
             method: "POST",
-            body: JSON.stringify(localSettings),
+            body: JSON.stringify(payload),
           }
         );
         if (res.ok) {
-          updateSettings(localSettings);
+          updateSettings(payload);
           navigate("contractsList");
           alert("تنظیمات با موفقیت ذخیره شد.");
         } else {
