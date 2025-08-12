@@ -42,12 +42,21 @@ import {
   Users,
   Key,
   RefreshCcw,
+  Shield,
 } from "lucide-react";
 
 // ------------------------------------------------------------------
 // CONFIG
 // ------------------------------------------------------------------
 const API_BASE_URL = window.location.origin;
+
+const PAGE_OPTIONS = [
+  { key: "mySettings", label: "تنظیمات قیمت برای خودم" },
+  { key: "customerSettings", label: "تنظیمات قیمت برای مشتری" },
+  { key: "reporting", label: "گزارش‌گیری" },
+  { key: "userManagement", label: "مدیریت کاربران" },
+  { key: "createContract", label: "ثبت قرارداد جدید" },
+];
 
 // ------------------------------------------------------------------
 // ZUSTAND STORE (fixed & expanded)
@@ -59,20 +68,23 @@ const useStore = create((set) => ({
   isLoggedIn: false,
   token: localStorage.getItem("token") || null,
   refreshToken: localStorage.getItem("refreshToken") || null,
+  allowedPages: JSON.parse(localStorage.getItem("allowedPages") || "[]"),
 
   contracts: [],
   mySettings: null,
   customerSettings: null,
   users: [],
 
-  login: (token, refreshToken) => {
+  login: (token, refreshToken, allowedPages = []) => {
     if (token) localStorage.setItem("token", token);
     if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-    set({ isLoggedIn: true, token, refreshToken });
+    localStorage.setItem("allowedPages", JSON.stringify(allowedPages));
+    set({ isLoggedIn: true, token, refreshToken, allowedPages });
   },
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
+     localStorage.removeItem("allowedPages");
     set({
       isLoggedIn: false,
       token: null,
@@ -81,6 +93,7 @@ const useStore = create((set) => ({
       mySettings: null,
       customerSettings: null,
       users: [],
+      allowedPages: [],
     });
   },
 
@@ -95,6 +108,10 @@ const useStore = create((set) => ({
   updateCustomerSettings: (settings) => set({ customerSettings: settings }),
 
   setUsers: (users) => set({ users }),
+  setAllowedPages: (allowedPages) => {
+    localStorage.setItem("allowedPages", JSON.stringify(allowedPages));
+    set({ allowedPages });
+  },
 }));
 
 // ------------------------------------------------------------------
@@ -230,6 +247,16 @@ export default function App() {
   const showError = (message) => setErrorMessage(message);
 
   const navigate = (page) => {
+    const allowed = useStore.getState().allowedPages || [];
+    if (
+      page !== "login" &&
+      page !== "contractsList" &&
+      allowed.length &&
+      !allowed.includes(page)
+    ) {
+      showError("شما اجازه دسترسی به این صفحه را ندارید.");
+      return;
+    }
     setPageStack((s) => [...s, currentPage]);
     setCurrentPage(page);
   };
@@ -264,8 +291,9 @@ export default function App() {
     const bootstrap = async () => {
       const token = localStorage.getItem("token");
       const refreshToken = localStorage.getItem("refreshToken");
+      const pages = JSON.parse(localStorage.getItem("allowedPages") || "[]");
       if (token && refreshToken) {
-        login(token, refreshToken);
+        login(token, refreshToken, pages);
         await fetchAllData();
         setCurrentPage("contractsList");
       }
@@ -310,12 +338,15 @@ export default function App() {
         showError("خطا در دریافت لیست قراردادها.");
       }
 
-      const usersRes = await fetchWithAuth(`${API_BASE_URL}/api/users`);
-      if (usersRes.ok) {
-        const usersData = await usersRes.json();
-        useStore.getState().setUsers(usersData || []);
-      } else {
-        showError("خطا در دریافت کاربران.");
+      const allowed = useStore.getState().allowedPages || [];
+      if (allowed.includes("userManagement")) {
+        const usersRes = await fetchWithAuth(`${API_BASE_URL}/api/users`);
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          useStore.getState().setUsers(usersData || []);
+        } else {
+          showError("خطا در دریافت کاربران.");
+        }
       }
     } catch (e) {
       console.error("Failed to fetch initial data:", e);
@@ -344,7 +375,7 @@ export default function App() {
           // store access & refresh
           localStorage.setItem("token", data.token);
           localStorage.setItem("refreshToken", data.refreshToken);
-          login(data.token, data.refreshToken);
+          login(data.token, data.refreshToken, data.allowedPages || []);
           await fetchAllData();
           navigate("contractsList");
         } else {
@@ -1511,6 +1542,7 @@ export default function App() {
   // ------------------------------------------------------------------
   const ContractsList = () => {
     const contracts = useStore((state) => state.contracts);
+    const allowedPages = useStore((state) => state.allowedPages);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPageNumber, setCurrentPageNumber] = useState(1);
     const contractsPerPage = 5;
@@ -1560,33 +1592,43 @@ export default function App() {
                 placeholder="جستجو بر اساس نام یا تاریخ..."
               />
               <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() => navigate("mySettings")}
-                  variant="secondary"
-                >
-                  <Settings className="h-4 w-4 mr-2" /> تنظیمات قیمت برای خودم
-                </Button>
-                <Button
-                  onClick={() => navigate("customerSettings")}
-                  variant="secondary"
-                >
-                  <User className="h-4 w-4 mr-2" /> تنظیمات قیمت برای مشتری
-                </Button>
-                <Button
-                  onClick={() => navigate("reporting")}
-                  variant="secondary"
-                >
-                  <BarChart className="h-4 w-4 mr-2" /> گزارش‌گیری
-                </Button>
-                <Button
-                  onClick={() => navigate("userManagement")}
-                  variant="secondary"
-                >
-                  <Users className="h-4 w-4 mr-2" /> مدیریت کاربران
-                </Button>
-                <Button onClick={() => navigate("createContract")}> 
-                  <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد جدید
-                </Button>
+                {allowedPages.includes("mySettings") && (
+                  <Button
+                    onClick={() => navigate("mySettings")}
+                    variant="secondary"
+                  >
+                    <Settings className="h-4 w-4 mr-2" /> تنظیمات قیمت برای خودم
+                  </Button>
+                )}
+                {allowedPages.includes("customerSettings") && (
+                  <Button
+                    onClick={() => navigate("customerSettings")}
+                    variant="secondary"
+                  >
+                    <User className="h-4 w-4 mr-2" /> تنظیمات قیمت برای مشتری
+                  </Button>
+                )}
+                {allowedPages.includes("reporting") && (
+                  <Button
+                    onClick={() => navigate("reporting")}
+                    variant="secondary"
+                  >
+                    <BarChart className="h-4 w-4 mr-2" /> گزارش‌گیری
+                  </Button>
+                )}
+                {allowedPages.includes("userManagement") && (
+                  <Button
+                    onClick={() => navigate("userManagement")}
+                    variant="secondary"
+                  >
+                    <Users className="h-4 w-4 mr-2" /> مدیریت کاربران
+                  </Button>
+                )}
+                {allowedPages.includes("createContract") && (
+                  <Button onClick={() => navigate("createContract")}>
+                    <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد جدید
+                  </Button>
+                )}
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -2108,8 +2150,11 @@ function UserManagement({ showError, navigate, BackButton }) {
     username: "",
     password: "",
     role: "user",
+    allowedPages: [],
   });
   const [openPasswordDialog, setOpenPasswordDialog] = useState(null);
+  const [openAccessDialog, setOpenAccessDialog] = useState(null);
+  const [selectedPages, setSelectedPages] = useState([]);
 
   const fetchUsers = async () => {
     try {
@@ -2135,7 +2180,12 @@ function UserManagement({ showError, navigate, BackButton }) {
       if (res.ok) {
         alert("کاربر جدید با موفقیت ایجاد شد.");
         fetchUsers();
-        setNewUser({ username: "", password: "", role: "user" });
+        setNewUser({
+          username: "",
+          password: "",
+          role: "user",
+          allowedPages: [],
+        });
       } else {
         const t = await res.json().catch(() => ({}));
         showError(t.message || "خطا در ایجاد کاربر.");
@@ -2157,6 +2207,26 @@ function UserManagement({ showError, navigate, BackButton }) {
         return true;
       } else {
         showError("خطا در تغییر رمز عبور.");
+        return false;
+      }
+    } catch (e) {
+      showError("خطای سرور.");
+      return false;
+    }
+  };
+
+  const handleUpdatePermissions = async (id, pages) => {
+    try {
+      const res = await fetchWithAuth(`${API_BASE_URL}/api/users/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ allowedPages: pages }),
+      });
+      if (res.ok) {
+        alert("دسترسی‌ها به‌روزرسانی شد.");
+        fetchUsers();
+        return true;
+      } else {
+        showError("خطا در به‌روزرسانی دسترسی‌ها.");
         return false;
       }
     } catch (e) {
@@ -2206,6 +2276,23 @@ function UserManagement({ showError, navigate, BackButton }) {
                 />
               </div>
             </div>
+            <div className="flex flex-wrap gap-4">
+              {PAGE_OPTIONS.map((p) => (
+                <div key={p.key} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`new-${p.key}`}
+                    checked={newUser.allowedPages.includes(p.key)}
+                    onCheckedChange={(checked) => {
+                      const updated = checked
+                        ? [...newUser.allowedPages, p.key]
+                        : newUser.allowedPages.filter((ap) => ap !== p.key);
+                      setNewUser({ ...newUser, allowedPages: updated });
+                    }}
+                  />
+                  <Label htmlFor={`new-${p.key}`}>{p.label}</Label>
+                </div>
+              ))}
+            </div>
             <Button type="submit">ثبت کاربر جدید</Button>
           </form>
         </CardContent>
@@ -2220,6 +2307,7 @@ function UserManagement({ showError, navigate, BackButton }) {
               <TableRow>
                 <TableHead className="text-right">نام کاربری</TableHead>
                 <TableHead className="text-right">سطح دسترسی</TableHead>
+                <TableHead className="text-right">صفحات مجاز</TableHead>
                 <TableHead className="text-right">عملیات</TableHead>
               </TableRow>
             </TableHeader>
@@ -2228,6 +2316,13 @@ function UserManagement({ showError, navigate, BackButton }) {
                 <TableRow key={user._id}>
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{user.role || "user"}</TableCell>
+                  <TableCell>
+                    {(user.allowedPages || [])
+                      .map(
+                        (p) => PAGE_OPTIONS.find((opt) => opt.key === p)?.label || p
+                      )
+                      .join("، ")}
+                  </TableCell>
                   <TableCell>
                     <Dialog
                       open={openPasswordDialog === user._id}
@@ -2267,6 +2362,56 @@ function UserManagement({ showError, navigate, BackButton }) {
                             ذخیره
                           </Button>
                         </form>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog
+                      open={openAccessDialog === user._id}
+                      onOpenChange={(open) => {
+                        if (open) setSelectedPages(user.allowedPages || []);
+                        setOpenAccessDialog(open ? user._id : null);
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="mr-2">
+                          <Shield className="h-4 w-4 ml-2" /> تنظیم دسترسی
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>
+                            تنظیم دسترسی برای {user.username}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="flex flex-wrap gap-4 py-4">
+                          {PAGE_OPTIONS.map((p) => (
+                            <div key={p.key} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`perm-${user._id}-${p.key}`}
+                                checked={selectedPages.includes(p.key)}
+                                onCheckedChange={(checked) => {
+                                  const updated = checked
+                                    ? [...selectedPages, p.key]
+                                    : selectedPages.filter((ap) => ap !== p.key);
+                                  setSelectedPages(updated);
+                                }}
+                              />
+                              <Label htmlFor={`perm-${user._id}-${p.key}`}>
+                                {p.label}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          onClick={async () => {
+                            const ok = await handleUpdatePermissions(
+                              user._id,
+                              selectedPages
+                            );
+                            if (ok) setOpenAccessDialog(null);
+                          }}
+                        >
+                          ذخیره
+                        </Button>
                       </DialogContent>
                     </Dialog>
                   </TableCell>

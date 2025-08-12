@@ -123,11 +123,20 @@ if (process.env.NODE_ENV === "test") {
 }
 
 // --- Schemas & Models
+const PAGE_NAMES = [
+  "mySettings",
+  "customerSettings",
+  "reporting",
+  "userManagement",
+  "createContract",
+];
+
 const userSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true, index: true },
     password: { type: String, required: true },
     role: { type: String, enum: ["admin", "user"], default: "user" },
+    allowedPages: { type: [String], default: [] },
   },
   { timestamps: true }
 );
@@ -149,6 +158,7 @@ const createDefaultAdmin = async () => {
         username: "admin",
         password: "1369Admin",
         role: "admin",
+        allowedPages: PAGE_NAMES,
       });
       await admin.save();
       console.log("Default admin user created: admin/admin");
@@ -282,7 +292,12 @@ app.post(
       const payload = { user: { id: user.id, role: user.role } };
       const token = signAccessToken(payload);
       const refreshToken = signRefreshToken(payload);
-      return res.json({ token, refreshToken, role: user.role });
+      return res.json({
+        token,
+        refreshToken,
+        role: user.role,
+        allowedPages: user.allowedPages || [],
+      });
     } catch (e) {
       console.error(e);
       return res.status(500).send("Server error");
@@ -329,15 +344,16 @@ app.post(
       username: Joi.string().min(3).max(64).required(),
       password: Joi.string().min(6).max(128).required(),
       role: Joi.string().valid("admin", "user").default("user"),
+      allowedPages: Joi.array().items(Joi.string()).default([]),
     }),
   }),
   async (req, res) => {
-    const { username, password, role } = req.body;
+    const { username, password, role, allowedPages } = req.body;
     try {
       const exists = await User.findOne({ username });
       if (exists)
         return res.status(400).json({ message: "User already exists" });
-      const user = new User({ username, password, role });
+      const user = new User({ username, password, role, allowedPages });
       await user.save();
       return res.status(201).json({ message: "User created successfully" });
     } catch (e) {
@@ -359,19 +375,25 @@ app.put(
       id: Joi.string().length(24).hex().required(),
     }),
     [Segments.BODY]: Joi.object({
-      password: Joi.string().min(6).max(128).required(),
-    }),
+      password: Joi.string().min(6).max(128),
+      allowedPages: Joi.array().items(Joi.string()),
+    }).or("password", "allowedPages"),
   }),
   async (req, res) => {
     const { id } = req.params;
-    const { password } = req.body;
+    const { password, allowedPages } = req.body;
     try {
       const user = await User.findById(id);
       if (!user) return res.status(404).json({ message: "User not found" });
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+      }
+      if (allowedPages) {
+        user.allowedPages = allowedPages;
+      }
       await user.save();
-      return res.json({ message: "Password updated successfully" });
+      return res.json({ message: "User updated successfully" });
     } catch (e) {
       console.error(e);
       return res.status(500).send("Server error");
