@@ -2,6 +2,16 @@
 /* اگر واقعاً لازم داری نگه دار */
 @import "tw-animate-css";
 
+/* فونت پایه */
+@font-face {
+  font-family: "IRANSansX";
+  src: url("/fonts/IRANSansX-Regular.woff2") format("woff2"),
+       url("/fonts/IRANSansX-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* حالت تاریک به صورت variant */
 @custom-variant dark (&:is(.dark *));
 
@@ -57,7 +67,7 @@ html, body, #root { height: 100%; }
 /* پایه‌های Tailwind/shadcn */
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground; }
+  body { @apply bg-background text-foreground font-sans; }
 }
 
 @theme inline {
@@ -65,6 +75,7 @@ html, body, #root { height: 100%; }
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: "IRANSansX", sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
