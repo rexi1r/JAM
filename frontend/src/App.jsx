@@ -188,6 +188,27 @@ const sanitizeSettings = (settings) => {
   return rest;
 };
 
+const to24Hour = (time) => {
+  if (!time) return "";
+  const match = time.match(/(\d{1,2}):(\d{2})(?:\s*(AM|PM|am|pm))?/);
+  if (!match) return time;
+  let [, hourStr, minute, meridiem] = match;
+  let hour = parseInt(hourStr, 10);
+  if (meridiem) {
+    const lower = meridiem.toLowerCase();
+    if (lower === "pm" && hour < 12) hour += 12;
+    if (lower === "am" && hour === 12) hour = 0;
+  }
+  return `${String(hour).padStart(2, "0")}:${minute}`;
+};
+
+const normalizeContractTimes = (contracts = []) =>
+  contracts.map((c) => ({
+    ...c,
+    startTime: to24Hour(c.startTime),
+    endTime: to24Hour(c.endTime),
+  }));
+
 // ------------------------------------------------------------------
 // MAIN APP
 // ------------------------------------------------------------------
@@ -282,7 +303,9 @@ export default function App() {
       );
       if (contractsRes.ok) {
         const contractsData = await contractsRes.json();
-        useStore.getState().setContracts(contractsData.contracts || []);
+        useStore.getState().setContracts(
+          normalizeContractTimes(contractsData.contracts || [])
+        );
       } else {
         showError("خطا در دریافت لیست قراردادها.");
       }
@@ -584,9 +607,13 @@ export default function App() {
           return o;
         });
       }
+      let finalValue = type === "number" ? parsedValue : value;
+      if (name.includes("Time")) {
+        finalValue = to24Hour(finalValue);
+      }
       setContract((prev) => ({
         ...prev,
-        [name]: type === "number" ? parsedValue : value,
+        [name]: finalValue,
       }));
     };
 
@@ -755,13 +782,22 @@ export default function App() {
       e.preventDefault();
       setIsSaving(true);
       try {
+        const payload = {
+          ...contract,
+          startTime: to24Hour(contract.startTime),
+          endTime: to24Hour(contract.endTime),
+        };
         const res = await fetchWithAuth(`${API_BASE_URL}/api/contracts`, {
           method: "POST",
-          body: JSON.stringify(contract),
+          body: JSON.stringify(payload),
         });
         if (res.ok) {
           const newContract = await res.json();
-          addContract(newContract);
+          addContract({
+            ...newContract,
+            startTime: to24Hour(newContract.startTime),
+            endTime: to24Hour(newContract.endTime),
+          });
           navigate("contractsList");
           alert("قرارداد با موفقیت ثبت شد.");
         } else {
