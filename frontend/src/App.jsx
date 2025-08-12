@@ -246,6 +246,8 @@ export default function App() {
       if (mySettingsRes.ok) {
         const mySettings = await mySettingsRes.json();
         useStore.getState().setMySettings(mySettings);
+      } else {
+        showError("خطا در دریافت تنظیمات قیمت برای خودم.");
       }
 
       const customerSettingsRes = await fetchWithAuth(
@@ -254,6 +256,8 @@ export default function App() {
       if (customerSettingsRes.ok) {
         const customerSettings = await customerSettingsRes.json();
         useStore.getState().setCustomerSettings(customerSettings);
+      } else {
+        showError("خطا در دریافت تنظیمات قیمت برای مشتری.");
       }
 
       const contractsRes = await fetchWithAuth(
@@ -262,12 +266,16 @@ export default function App() {
       if (contractsRes.ok) {
         const contractsData = await contractsRes.json();
         useStore.getState().setContracts(contractsData.contracts || []);
+      } else {
+        showError("خطا در دریافت لیست قراردادها.");
       }
 
       const usersRes = await fetchWithAuth(`${API_BASE_URL}/api/users`);
       if (usersRes.ok) {
         const usersData = await usersRes.json();
         useStore.getState().setUsers(usersData || []);
+      } else {
+        showError("خطا در دریافت کاربران.");
       }
     } catch (e) {
       console.error("Failed to fetch initial data:", e);
@@ -1911,9 +1919,11 @@ export default function App() {
         if (res.ok) {
           const data = await res.json();
           setUsers(data);
+        } else {
+          showError("خطا در دریافت کاربران.");
         }
       } catch (e) {
-        /* noop */
+        showError("خطای سرور.");
       }
     };
 
@@ -1929,7 +1939,8 @@ export default function App() {
           fetchUsers();
           setNewUser({ username: "", password: "", role: "user" });
         } else {
-          showError("خطا در ایجاد کاربر.");
+          const t = await res.json().catch(() => ({}));
+          showError(t.message || "خطا در ایجاد کاربر.");
         }
       } catch (e) {
         showError("خطای سرور.");
