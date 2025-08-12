@@ -589,6 +589,7 @@ export default function App() {
       myDinnerPrice: "",
       myWaterPrice: "",
       myTotalCost: 0,
+      status: "unknown",
       includeCandle: false,
       includeFlower: false,
       includeJuice: false,
@@ -1524,7 +1525,17 @@ export default function App() {
                     <span>پیش‌نویس نامه پیشنهاد (به‌زودی از بک‌اند)</span>
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
+                <div className="flex flex-wrap gap-2 mt-4 sm:mt-0 items-center">
+                  <select
+                    name="status"
+                    value={contract.status}
+                    onChange={handleChange}
+                    className="border rounded px-3 py-2"
+                  >
+                    <option value="final">نهایی</option>
+                    <option value="unknown">نامشخص</option>
+                    <option value="cancelled">کنسل</option>
+                  </select>
                   <Button type="submit" disabled={isSaving}>
                     {isSaving ? "در حال ذخیره..." : "ثبت قرارداد"}
                   </Button>

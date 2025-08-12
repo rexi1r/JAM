@@ -214,6 +214,11 @@ const contractSchema = new mongoose.Schema(
     extraDetails: { type: String, default: "" },
     customerTotalCost: { type: Number, default: 0 },
     myTotalCost: { type: Number, default: 0 },
+    status: {
+      type: String,
+      enum: ["final", "unknown", "cancelled"],
+      default: "unknown",
+    },
     includeCandle: { type: Boolean, default: false },
     includeFlower: { type: Boolean, default: false },
     includeJuice: { type: Boolean, default: false },
@@ -492,6 +497,9 @@ app.post(
       extraDetails: Joi.string().allow("").default(""),
       customerTotalCost: Joi.number().min(0).default(0),
       myTotalCost: Joi.number().min(0).default(0),
+      status: Joi.string()
+        .valid("final", "unknown", "cancelled")
+        .default("unknown"),
       includeCandle: Joi.boolean().default(false),
       includeFlower: Joi.boolean().default(false),
       includeJuice: Joi.boolean().default(false),
