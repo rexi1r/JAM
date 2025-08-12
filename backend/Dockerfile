@@ -3,14 +3,14 @@
 # ============================
 
 # Multi-stage اختیاری نیست، ولی تصویر را کوچک و امن می‌کند
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 COPY backend/package*.json ./
 # RUN npm ci --only=production
 # اگر از npm v10 استفاده می‌شود:
 RUN npm ci --omit=dev
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 # tini برای هندل صحیح سیگنال‌ها در کانتینر
 RUN apk add --no-cache tini
 WORKDIR /app
