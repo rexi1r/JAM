@@ -47,7 +47,7 @@ const ContractsList = ({
   handleLogout,
   navigate,
   showError,
-  title = "لیست قراردادها",
+  title = "داشبورد",
 }) => {
   const contracts = useStore((state) => state.contracts);
   const allowedPages = useStore((state) => state.allowedPages);
