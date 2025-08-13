@@ -84,7 +84,7 @@ const useStore = create((set) => ({
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
-     localStorage.removeItem("allowedPages");
+    localStorage.removeItem("allowedPages");
     set({
       isLoggedIn: false,
       token: null,
@@ -331,9 +331,9 @@ export default function App() {
       );
       if (contractsRes.ok) {
         const contractsData = await contractsRes.json();
-        useStore.getState().setContracts(
-          normalizeContractTimes(contractsData.contracts || [])
-        );
+        useStore
+          .getState()
+          .setContracts(normalizeContractTimes(contractsData.contracts || []));
       } else {
         showError("خطا در دریافت لیست قراردادها.");
       }
@@ -590,7 +590,7 @@ export default function App() {
       myDinnerPrice: "",
       myWaterPrice: "",
       myTotalCost: 0,
-      status: "unknown",
+      status: "reservation",
       includeCandle: false,
       includeFlower: false,
       includeJuice: false,
@@ -688,7 +688,8 @@ export default function App() {
     const handleExtraItemChange = (index, field, value) => {
       setContract((prev) => {
         const items = [...prev.extraItems];
-        const val = field === "price" ? Math.max(0, parseFloat(value) || 0) : value;
+        const val =
+          field === "price" ? Math.max(0, parseFloat(value) || 0) : value;
         items[index] = { ...items[index], [field]: val };
         return { ...prev, extraItems: items };
       });
@@ -1608,7 +1609,7 @@ export default function App() {
                     className="border rounded px-3 py-2"
                   >
                     <option value="final">نهایی</option>
-                    <option value="unknown">نامشخص</option>
+                    <option value="reservation">رزرو</option>
                     <option value="cancelled">کنسل</option>
                   </select>
                   <Button type="submit" disabled={isSaving}>
@@ -1761,11 +1762,13 @@ export default function App() {
                                   </h4>
                                   <p>
                                     <strong>نام داماد:</strong>{" "}
-                                    {c.groomFirstName} {c.groomLastName} ({c.groomNationalId})
+                                    {c.groomFirstName} {c.groomLastName} (
+                                    {c.groomNationalId})
                                   </p>
                                   <p>
                                     <strong>نام همسر:</strong>{" "}
-                                    {c.spouseFirstName} {c.spouseLastName} ({c.spouseNationalId})
+                                    {c.spouseFirstName} {c.spouseLastName} (
+                                    {c.spouseNationalId})
                                   </p>
                                   <p>
                                     <strong>آدرس:</strong> {c.address}
@@ -2432,7 +2435,8 @@ function UserManagement({ showError, navigate, BackButton }) {
                   <TableCell>
                     {(user.allowedPages || [])
                       .map(
-                        (p) => PAGE_OPTIONS.find((opt) => opt.key === p)?.label || p
+                        (p) =>
+                          PAGE_OPTIONS.find((opt) => opt.key === p)?.label || p
                       )
                       .join("، ")}
                   </TableCell>
@@ -2506,32 +2510,44 @@ function UserManagement({ showError, navigate, BackButton }) {
                               if (checked) {
                                 if (
                                   users.some(
-                                    (u) => u.role === "admin" && u._id !== user._id
+                                    (u) =>
+                                      u.role === "admin" && u._id !== user._id
                                   )
                                 ) {
                                   alert("فقط یک کاربر مدیر مجاز است");
                                   return;
                                 }
                                 setSelectedRole(true);
-                                setSelectedPages(PAGE_OPTIONS.map((p) => p.key));
+                                setSelectedPages(
+                                  PAGE_OPTIONS.map((p) => p.key)
+                                );
                               } else {
                                 setSelectedRole(false);
                               }
                             }}
                           />
-                          <Label htmlFor={`admin-${user._id}`}>کاربر مدیر</Label>
+                          <Label htmlFor={`admin-${user._id}`}>
+                            کاربر مدیر
+                          </Label>
                         </div>
                         <div className="flex flex-wrap gap-4 py-4">
                           {PAGE_OPTIONS.map((p) => (
-                            <div key={p.key} className="flex items-center space-x-2">
+                            <div
+                              key={p.key}
+                              className="flex items-center space-x-2"
+                            >
                               <Checkbox
                                 id={`perm-${user._id}-${p.key}`}
                                 checked={selectedPages.includes(p.key)}
-                                disabled={selectedRole && p.key === "userManagement"}
+                                disabled={
+                                  selectedRole && p.key === "userManagement"
+                                }
                                 onCheckedChange={(checked) => {
                                   const updated = checked
                                     ? [...selectedPages, p.key]
-                                    : selectedPages.filter((ap) => ap !== p.key);
+                                    : selectedPages.filter(
+                                        (ap) => ap !== p.key
+                                      );
                                   setSelectedPages(updated);
                                 }}
                               />

@@ -225,8 +225,8 @@ const contractSchema = new mongoose.Schema(
     myTotalCost: { type: Number, default: 0 },
     status: {
       type: String,
-      enum: ["final", "unknown", "cancelled"],
-      default: "unknown",
+      enum: ["final", "reservation", "cancelled"],
+      default: "reservation",
     },
     includeCandle: { type: Boolean, default: false },
     includeFlower: { type: Boolean, default: false },
@@ -370,9 +370,7 @@ app.post(
       if (role === "admin") {
         const adminExists = await User.findOne({ role: "admin" });
         if (adminExists)
-          return res
-            .status(400)
-            .json({ message: "Admin user already exists" });
+          return res.status(400).json({ message: "Admin user already exists" });
       }
       const user = new User({
         username,
@@ -422,9 +420,7 @@ app.put(
           _id: { $ne: id },
         });
         if (adminExists)
-          return res
-            .status(400)
-            .json({ message: "Admin user already exists" });
+          return res.status(400).json({ message: "Admin user already exists" });
         user.role = "admin";
         user.allowedPages = PAGE_NAMES;
       } else if (role === "user" && user.role === "admin") {
@@ -546,8 +542,8 @@ app.post(
       customerTotalCost: Joi.number().min(0).default(0),
       myTotalCost: Joi.number().min(0).default(0),
       status: Joi.string()
-        .valid("final", "unknown", "cancelled")
-        .default("unknown"),
+        .valid("final", "reservation", "cancelled")
+        .default("reservation"),
       includeCandle: Joi.boolean().default(false),
       includeFlower: Joi.boolean().default(false),
       includeJuice: Joi.boolean().default(false),
