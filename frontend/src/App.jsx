@@ -63,7 +63,7 @@ const PAGE_OPTIONS = [
   { key: "customerSettings", label: "تنظیمات قیمت برای مشتری" },
   { key: "reporting", label: "گزارش‌گیری" },
   { key: "userManagement", label: "مدیریت کاربران" },
-  { key: "createContract", label: "ثبت قرارداد جدید" },
+  { key: "createContract", label: "ثبت قرارداد سالن عقد" },
   { key: "studioContract", label: "ثبت قرارداد استدیو جم" },
 ];
 
@@ -986,7 +986,7 @@ export default function App() {
       <div className="container mx-auto p-8 min-h-screen font-iransans">
         <BackButton />
         <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
-          {isEditing ? "ویرایش قرارداد" : "ثبت قرارداد جدید"}
+          {isEditing ? "ویرایش قرارداد" : "ثبت قرارداد سالن عقد"}
         </h1>
         <Card className="max-w-6xl mx-auto">
           <CardContent className="pt-6">
@@ -2077,7 +2077,7 @@ export default function App() {
                       navigate("createContract");
                     }}
                   >
-                    <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد جدید
+                    <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد سالن عقد
                   </Button>
                 )}
                 {allowedPages.includes("studioContract") && (
