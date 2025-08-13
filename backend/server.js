@@ -243,6 +243,52 @@ const contractSchema = new mongoose.Schema(
 
 const Contract = mongoose.model("Contract", contractSchema);
 
+const contractBodySchema = Joi.object({
+  contractOwner: Joi.string().required(),
+  groomFirstName: Joi.string().required(),
+  groomLastName: Joi.string().required(),
+  groomNationalId: Joi.string().required(),
+  spouseFirstName: Joi.string().required(),
+  spouseLastName: Joi.string().required(),
+  spouseNationalId: Joi.string().required(),
+  address: Joi.string().allow("").default(""),
+  phone: Joi.string().allow("").default(""),
+  email: Joi.string().email().allow("").default(""),
+  inviteesCount: Joi.number().min(0).default(0),
+  eventDate: Joi.string().required(),
+  startTime: Joi.string().required(),
+  endTime: Joi.string().required(),
+  serviceStaffCount: Joi.number().min(0).default(0),
+  juiceCount: Joi.number().min(0).default(0),
+  teaCount: Joi.number().min(0).default(0),
+  fireworkCount: Joi.number().min(0).default(0),
+  waterCount: Joi.number().min(0).default(0),
+  dinnerCount: Joi.number().min(0).default(0),
+  dinnerType: Joi.string().allow("").default(""),
+  discount: Joi.number().min(0).default(0),
+  extraDetails: Joi.string().allow("").default(""),
+  extraItems: Joi.array()
+    .items(
+      Joi.object({
+        title: Joi.string().required(),
+        price: Joi.number().min(0).required(),
+      })
+    )
+    .default([]),
+  customerTotalCost: Joi.number().min(0).default(0),
+  myTotalCost: Joi.number().min(0).default(0),
+  status: Joi.string()
+    .valid("final", "reservation", "cancelled")
+    .default("reservation"),
+  includeCandle: Joi.boolean().default(false),
+  includeFlower: Joi.boolean().default(false),
+  includeJuice: Joi.boolean().default(false),
+  includeTea: Joi.boolean().default(false),
+  includeFirework: Joi.boolean().default(false),
+  includeWater: Joi.boolean().default(false),
+  includeDinner: Joi.boolean().default(false),
+}).unknown(false);
+
 // --- Sample data seeding
 class SampleData {
   static async seedSettings() {
@@ -775,53 +821,7 @@ app.post(
 app.post(
   "/api/contracts",
   authMiddleware,
-  celebrate({
-    [Segments.BODY]: Joi.object({
-      contractOwner: Joi.string().required(),
-      groomFirstName: Joi.string().required(),
-      groomLastName: Joi.string().required(),
-      groomNationalId: Joi.string().required(),
-      spouseFirstName: Joi.string().required(),
-      spouseLastName: Joi.string().required(),
-      spouseNationalId: Joi.string().required(),
-      address: Joi.string().allow("").default(""),
-      phone: Joi.string().allow("").default(""),
-      email: Joi.string().email().allow("").default(""),
-      inviteesCount: Joi.number().min(0).default(0),
-      eventDate: Joi.string().required(),
-      startTime: Joi.string().required(),
-      endTime: Joi.string().required(),
-      serviceStaffCount: Joi.number().min(0).default(0),
-      juiceCount: Joi.number().min(0).default(0),
-      teaCount: Joi.number().min(0).default(0),
-      fireworkCount: Joi.number().min(0).default(0),
-      waterCount: Joi.number().min(0).default(0),
-      dinnerCount: Joi.number().min(0).default(0),
-      dinnerType: Joi.string().allow("").default(""),
-      discount: Joi.number().min(0).default(0),
-      extraDetails: Joi.string().allow("").default(""),
-      extraItems: Joi.array()
-        .items(
-          Joi.object({
-            title: Joi.string().required(),
-            price: Joi.number().min(0).required(),
-          })
-        )
-        .default([]),
-      customerTotalCost: Joi.number().min(0).default(0),
-      myTotalCost: Joi.number().min(0).default(0),
-      status: Joi.string()
-        .valid("final", "reservation", "cancelled")
-        .default("reservation"),
-      includeCandle: Joi.boolean().default(false),
-      includeFlower: Joi.boolean().default(false),
-      includeJuice: Joi.boolean().default(false),
-      includeTea: Joi.boolean().default(false),
-      includeFirework: Joi.boolean().default(false),
-      includeWater: Joi.boolean().default(false),
-      includeDinner: Joi.boolean().default(false),
-    }).unknown(false),
-  }),
+  celebrate({ [Segments.BODY]: contractBodySchema }),
   async (req, res) => {
     try {
       const newContract = new Contract(req.body);
@@ -833,6 +833,74 @@ app.post(
     }
   }
 );
+
+app.get("/api/contracts/:id", authMiddleware, async (req, res) => {
+  try {
+    const contract = await Contract.findById(req.params.id);
+    if (!contract) return res.status(404).send("Not found");
+    return res.json(contract);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("Server error");
+  }
+});
+
+app.put(
+  "/api/contracts/:id",
+  authMiddleware,
+  celebrate({ [Segments.BODY]: contractBodySchema }),
+  async (req, res) => {
+    try {
+      const updated = await Contract.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true }
+      );
+      if (!updated) return res.status(404).send("Not found");
+      return res.json(updated);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Server error");
+    }
+  }
+);
+
+app.patch(
+  "/api/contracts/:id/status",
+  authMiddleware,
+  celebrate({
+    [Segments.BODY]: Joi.object({
+      status: Joi.string()
+        .valid("final", "reservation", "cancelled")
+        .required(),
+    }).unknown(false),
+  }),
+  async (req, res) => {
+    try {
+      const updated = await Contract.findByIdAndUpdate(
+        req.params.id,
+        { status: req.body.status },
+        { new: true }
+      );
+      if (!updated) return res.status(404).send("Not found");
+      return res.json(updated);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Server error");
+    }
+  }
+);
+
+app.delete("/api/contracts/:id", authMiddleware, async (req, res) => {
+  try {
+    const deleted = await Contract.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).send("Not found");
+    return res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("Server error");
+  }
+});
 
 app.get(
   "/api/contracts/search",
