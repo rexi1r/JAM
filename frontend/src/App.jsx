@@ -1793,9 +1793,11 @@ export default function App() {
   const ContractsList = () => {
     const contracts = useStore((state) => state.contracts);
     const allowedPages = useStore((state) => state.allowedPages);
+    const role = useStore((state) => state.role);
     const removeContract = useStore((state) => state.removeContract);
     const updateContract = useStore((state) => state.updateContract);
     const setEditingContract = useStore((state) => state.setEditingContract);
+    const isAdmin = role === "admin";
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPageNumber, setCurrentPageNumber] = useState(1);
     const contractsPerPage = 5;
@@ -2114,11 +2116,16 @@ export default function App() {
                                   جزئیات قرارداد: {c.contractOwner}
                                 </DialogTitle>
                               </DialogHeader>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-sm">
-                                <div className="space-y-2">
-                                  <h4 className="font-semibold border-b pb-1">
-                                    اطلاعات کلی
-                                  </h4>
+                              <div
+                                className={`grid grid-cols-1 gap-4 mt-4 text-sm ${
+                                  isAdmin ? "md:grid-cols-3" : ""
+                                }`}
+                              >
+                                {isAdmin && (
+                                  <div className="space-y-2">
+                                    <h4 className="font-semibold border-b pb-1">
+                                      اطلاعات کلی
+                                    </h4>
                                   <p>
                                     <strong>نام داماد:</strong>{" "}
                                     {c.groomFirstName} {c.groomLastName} (
@@ -2165,6 +2172,7 @@ export default function App() {
                                     <strong>توضیحات:</strong> {c.extraDetails}
                                   </p>
                                 </div>
+                                )}
                                 <div className="space-y-2">
                                   <h4 className="font-semibold border-b pb-1 text-blue-600">
                                     هزینه‌های مشتری
@@ -2272,10 +2280,11 @@ export default function App() {
                                     تومان
                                   </p>
                                 </div>
-                                <div className="space-y-2">
-                                  <h4 className="font-semibold border-b pb-1 text-green-600">
-                                    هزینه‌های خودم
-                                  </h4>
+                                {isAdmin && (
+                                  <div className="space-y-2">
+                                    <h4 className="font-semibold border-b pb-1 text-green-600">
+                                      هزینه‌های خودم
+                                    </h4>
                                   <p>
                                     <strong>مبلغ ورودی:</strong>{" "}
                                     {Number(c.myEntryFee || 0).toLocaleString(
@@ -2379,6 +2388,7 @@ export default function App() {
                                     تومان
                                   </p>
                                 </div>
+                                )}
                               </div>
                               <div className="flex justify-end mt-4">
                                 <Button
