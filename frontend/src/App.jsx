@@ -69,22 +69,25 @@ const useStore = create((set) => ({
   token: localStorage.getItem("token") || null,
   refreshToken: localStorage.getItem("refreshToken") || null,
   allowedPages: JSON.parse(localStorage.getItem("allowedPages") || "[]"),
+  role: localStorage.getItem("role") || "user",
 
   contracts: [],
   mySettings: null,
   customerSettings: null,
   users: [],
 
-  login: (token, refreshToken, allowedPages = []) => {
+  login: (token, refreshToken, allowedPages = [], role = "user") => {
     if (token) localStorage.setItem("token", token);
     if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("allowedPages", JSON.stringify(allowedPages));
-    set({ isLoggedIn: true, token, refreshToken, allowedPages });
+    localStorage.setItem("role", role);
+    set({ isLoggedIn: true, token, refreshToken, allowedPages, role });
   },
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("allowedPages");
+    localStorage.removeItem("role");
     set({
       isLoggedIn: false,
       token: null,
@@ -94,6 +97,7 @@ const useStore = create((set) => ({
       customerSettings: null,
       users: [],
       allowedPages: [],
+      role: "user",
     });
   },
 
@@ -144,7 +148,9 @@ const fetchWithAuth = async (url, options = {}) => {
       });
       if (refreshRes.ok) {
         const { token: newToken } = await refreshRes.json();
-        useStore.getState().login(newToken, refreshToken);
+        useStore
+          .getState()
+          .login(newToken, refreshToken, state.allowedPages, state.role);
         const retryHeaders = {
           ...headers,
           Authorization: `Bearer ${newToken}`,
@@ -292,8 +298,9 @@ export default function App() {
       const token = localStorage.getItem("token");
       const refreshToken = localStorage.getItem("refreshToken");
       const pages = JSON.parse(localStorage.getItem("allowedPages") || "[]");
+      const role = localStorage.getItem("role") || "user";
       if (token && refreshToken) {
-        login(token, refreshToken, pages);
+        login(token, refreshToken, pages, role);
         await fetchAllData();
         setCurrentPage("contractsList");
       }
@@ -375,7 +382,12 @@ export default function App() {
           // store access & refresh
           localStorage.setItem("token", data.token);
           localStorage.setItem("refreshToken", data.refreshToken);
-          login(data.token, data.refreshToken, data.allowedPages || []);
+          login(
+            data.token,
+            data.refreshToken,
+            data.allowedPages || [],
+            data.role
+          );
           await fetchAllData();
           navigate("contractsList");
         } else {
@@ -541,7 +553,8 @@ export default function App() {
   // Create Contract
   // ------------------------------------------------------------------
   const CreateContract = () => {
-    const { mySettings, customerSettings, addContract } = useStore();
+    const { mySettings, customerSettings, addContract, role } = useStore();
+    const isAdmin = role === "admin";
 
     const [contract, setContract] = useState({
       contractOwner: "",
@@ -1076,7 +1089,9 @@ export default function App() {
                   <h2 className="text-xl font-bold mt-8 mb-4 border-b pb-2">
                     هزینه‌های ورودی و خدمه
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div
+                    className={`grid grid-cols-1 gap-8 ${isAdmin ? "md:grid-cols-2" : ""}`}
+                  >
                     <div className="grid gap-2">
                       <Label htmlFor="customerEntryFee">
                         مبلغ ورودی (مشتری)
@@ -1090,7 +1105,7 @@ export default function App() {
                         min="0"
                       />
                     </div>
-                    <div className="grid gap-2">
+                    <div className={`grid gap-2 ${!isAdmin && "hidden"}`}>
                       <Label htmlFor="myEntryFee">مبلغ ورودی (خودم)</Label>
                       <Input
                         type="number"
@@ -1102,7 +1117,11 @@ export default function App() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-4">
+                  <div
+                    className={`grid grid-cols-1 gap-8 mt-4 ${
+                      isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"
+                    }`}
+                  >
                     <div className="grid gap-2">
                       <Label htmlFor="serviceStaffCount">
                         تعداد خدمه مورد استفاده
@@ -1129,7 +1148,7 @@ export default function App() {
                         min="0"
                       />
                     </div>
-                    <div className="grid gap-2">
+                    <div className={`grid gap-2 ${!isAdmin && "hidden"}`}>
                       <Label htmlFor="myServiceFee">حق سرویس (خودم)</Label>
                       <Input
                         type="number"
@@ -1159,7 +1178,11 @@ export default function App() {
                     <Label htmlFor="includeJuice">شامل آبمیوه</Label>
                   </div>
                   {contract.includeJuice && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div
+                      className={`grid grid-cols-1 gap-8 ${
+                        isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"
+                      }`}
+                    >
                       <div className="grid gap-2">
                         <Label htmlFor="juiceCount">تعداد آبمیوه</Label>
                         <Input
@@ -1184,7 +1207,7 @@ export default function App() {
                           min="0"
                         />
                       </div>
-                      <div className="grid gap-2">
+                      <div className={`grid gap-2 ${!isAdmin && "hidden"}`}>
                         <Label htmlFor="myJuicePrice">قیمت آبمیوه (خودم)</Label>
                         <Input
                           type="number"
@@ -1209,7 +1232,11 @@ export default function App() {
                     <Label htmlFor="includeTea">شامل چایی</Label>
                   </div>
                   {contract.includeTea && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div
+                      className={`grid grid-cols-1 gap-8 ${
+                        isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"
+                      }`}
+                    >
                       <div className="grid gap-2">
                         <Label htmlFor="teaCount">تعداد چایی</Label>
                         <Input
@@ -1234,7 +1261,7 @@ export default function App() {
                           min="0"
                         />
                       </div>
-                      <div className="grid gap-2">
+                      <div className={`grid gap-2 ${!isAdmin && "hidden"}`}>
                         <Label htmlFor="myTeaPrice">قیمت چایی (خودم)</Label>
                         <Input
                           type="number"
@@ -1259,7 +1286,11 @@ export default function App() {
                     <Label htmlFor="includeWater">شامل آب معدنی</Label>
                   </div>
                   {contract.includeWater && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div
+                      className={`grid grid-cols-1 gap-8 ${
+                        isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"
+                      }`}
+                    >
                       <div className="grid gap-2">
                         <Label htmlFor="waterCount">تعداد آب معدنی</Label>
                         <Input
@@ -1284,7 +1315,7 @@ export default function App() {
                           min="0"
                         />
                       </div>
-                      <div className="grid gap-2">
+                      <div className={`grid gap-2 ${!isAdmin && "hidden"}`}>
                         <Label htmlFor="myWaterPrice">
                           قیمت آب معدنی (خودم)
                         </Label>
@@ -1317,7 +1348,11 @@ export default function App() {
                     <Label htmlFor="includeDinner">شامل شام</Label>
                   </div>
                   {contract.includeDinner && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div
+                      className={`grid grid-cols-1 gap-8 ${
+                        isAdmin ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-2 lg:grid-cols-3"
+                      }`}
+                    >
                       <div className="grid gap-2">
                         <Label htmlFor="dinnerType">نوع شام</Label>
                         <Input
@@ -1352,7 +1387,7 @@ export default function App() {
                           min="0"
                         />
                       </div>
-                      <div className="grid gap-2">
+                      <div className={`grid gap-2 ${!isAdmin && "hidden"}`}>
                         <Label htmlFor="myDinnerPrice">قیمت شام (خودم)</Label>
                         <Input
                           type="number"
@@ -1383,7 +1418,11 @@ export default function App() {
                     <Label htmlFor="includeCandle">شامل شمع‌آرایی</Label>
                   </div>
                   {contract.includeCandle && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
+                    <div
+                      className={`grid grid-cols-1 gap-8 mb-4 ${
+                        isAdmin ? "md:grid-cols-2" : ""
+                      }`}
+                    >
                       <div className="grid gap-2">
                         <Label htmlFor="customerCandlePrice">
                           هزینه شمع‌آرایی (مشتری)
@@ -1397,7 +1436,7 @@ export default function App() {
                           min="0"
                         />
                       </div>
-                      <div className="grid gap-2">
+                      <div className={`grid gap-2 ${!isAdmin && "hidden"}`}>
                         <Label htmlFor="myCandlePrice">
                           هزینه شمع‌آرایی (خودم)
                         </Label>
@@ -1424,7 +1463,11 @@ export default function App() {
                     <Label htmlFor="includeFlower">شامل گل‌آرایی</Label>
                   </div>
                   {contract.includeFlower && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
+                    <div
+                      className={`grid grid-cols-1 gap-8 mb-4 ${
+                        isAdmin ? "md:grid-cols-2" : ""
+                      }`}
+                    >
                       <div className="grid gap-2">
                         <Label htmlFor="customerFlowerPrice">
                           هزینه گل‌آرایی (مشتری)
@@ -1438,7 +1481,7 @@ export default function App() {
                           min="0"
                         />
                       </div>
-                      <div className="grid gap-2">
+                      <div className={`grid gap-2 ${!isAdmin && "hidden"}`}>
                         <Label htmlFor="myFlowerPrice">
                           هزینه گل‌آرایی (خودم)
                         </Label>
@@ -1465,7 +1508,11 @@ export default function App() {
                     <Label htmlFor="includeFirework">شامل آتش‌بازی</Label>
                   </div>
                   {contract.includeFirework && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div
+                      className={`grid grid-cols-1 gap-8 ${
+                        isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"
+                      }`}
+                    >
                       <div className="grid gap-2">
                         <Label htmlFor="fireworkCount">تعداد آتش‌بازی</Label>
                         <Input
@@ -1490,7 +1537,7 @@ export default function App() {
                           min="0"
                         />
                       </div>
-                      <div className="grid gap-2">
+                      <div className={`grid gap-2 ${!isAdmin && "hidden"}`}>
                         <Label htmlFor="myFireworkPrice">
                           قیمت آتش‌بازی (خودم)
                         </Label>
@@ -1589,7 +1636,11 @@ export default function App() {
                     مبلغ نهایی مشتری:{" "}
                     {contract.customerTotalCost.toLocaleString("fa-IR")} تومان
                   </div>
-                  <div className="text-2xl font-bold text-gray-800">
+                  <div
+                    className={`text-2xl font-bold text-gray-800 ${
+                      !isAdmin && "hidden"
+                    }`}
+                  >
                     مبلغ نهایی خودم:{" "}
                     {contract.myTotalCost.toLocaleString("fa-IR")} تومان
                   </div>
