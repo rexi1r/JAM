@@ -1941,7 +1941,7 @@ function UserManagement({ showError, navigate, BackButton }) {
       const res = await fetchWithAuth(`${API_BASE_URL}/api/users/${id}`, {
         method: "PUT",
         body: JSON.stringify({
-          allowedPages: isAdmin ? PAGE_OPTIONS.map((p) => p.key) : pages,
+          allowedPages: pages,
           role: isAdmin ? "admin" : "user",
         }),
       });
@@ -1953,9 +1953,7 @@ function UserManagement({ showError, navigate, BackButton }) {
             u._id === id
               ? {
                   ...u,
-                  allowedPages: isAdmin
-                    ? PAGE_OPTIONS.map((p) => p.key)
-                    : pages,
+                  allowedPages: pages,
                   role: isAdmin ? "admin" : "user",
                 }
               : u
