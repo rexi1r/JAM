@@ -56,6 +56,7 @@ const ContractsList = ({
   const updateContract = useStore((state) => state.updateContract);
   const setEditingContract = useStore((state) => state.setEditingContract);
   const isAdmin = role === "admin";
+  const isDashboard = title === "داشبورد";
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
   const contractsPerPage = 5;
@@ -333,7 +334,7 @@ const ContractsList = ({
                   <FileText className="h-4 w-4 mr-2" /> قرارداد استدیو جم
                 </Button>
               )}
-              {allowedPages.includes("hallContracts") && (
+              {isDashboard && allowedPages.includes("hallContracts") && (
                 <Button
                   onClick={() => navigate("hallContracts")}
                   variant="secondary"
@@ -341,7 +342,7 @@ const ContractsList = ({
                   <FileText className="h-4 w-4 mr-2" /> قرارداد های سالن عقد
                 </Button>
               )}
-              {allowedPages.includes("studioContracts") && (
+              {isDashboard && allowedPages.includes("studioContracts") && (
                 <Button
                   onClick={() => navigate("studioContracts")}
                   variant="secondary"
