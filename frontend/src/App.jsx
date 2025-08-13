@@ -1538,25 +1538,31 @@ export default function App() {
                 <div className="mt-6">
                   <h3 className="font-bold mb-2">آیتم‌های اضافی</h3>
                   {contract.extraItems.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-2 mb-2">
-                      <Input
-                        placeholder="عنوان"
-                        value={item.title}
-                        onChange={(e) =>
-                          handleExtraItemChange(idx, "title", e.target.value)
-                        }
-                        className="flex-1"
-                      />
-                      <Input
-                        type="number"
-                        placeholder="قیمت"
-                        value={item.price}
-                        onChange={(e) =>
-                          handleExtraItemChange(idx, "price", e.target.value)
-                        }
-                        className="w-40"
-                        min="0"
-                      />
+                    <div key={idx} className="flex items-end gap-2 mb-2">
+                      <div className="flex-1">
+                        <Label className="block mb-1">عنوان</Label>
+                        <Input
+                          placeholder="عنوان"
+                          value={item.title}
+                          onChange={(e) =>
+                            handleExtraItemChange(idx, "title", e.target.value)
+                          }
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex-1 max-w-[200px]">
+                        <Label className="block mb-1">قیمت</Label>
+                        <Input
+                          type="number"
+                          placeholder="قیمت"
+                          value={item.price}
+                          onChange={(e) =>
+                            handleExtraItemChange(idx, "price", e.target.value)
+                          }
+                          className="w-full"
+                          min="0"
+                        />
+                      </div>
                       <Button
                         type="button"
                         variant="destructive"
