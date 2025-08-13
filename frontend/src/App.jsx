@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -46,6 +47,7 @@ import {
   Key,
   RefreshCcw,
   Shield,
+  Search,
 } from "lucide-react";
 
 // ------------------------------------------------------------------
@@ -1744,13 +1746,82 @@ export default function App() {
     const [currentPageNumber, setCurrentPageNumber] = useState(1);
     const contractsPerPage = 5;
 
-    const filteredContracts = contracts.filter(
-      (c) =>
-        (c.contractOwner || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        (c.eventDate || "").includes(searchTerm)
-    );
+    const initialFilters = {
+      contractOwner: "",
+      groomFirstName: "",
+      groomLastName: "",
+      spouseFirstName: "",
+      spouseLastName: "",
+      eventDate: "",
+    };
+
+    const [advancedFilters, setAdvancedFilters] = useState(initialFilters);
+    const [tempFilters, setTempFilters] = useState(initialFilters);
+    const [openAdvanced, setOpenAdvanced] = useState(false);
+
+    const handleAdvancedChange = (e) =>
+      setTempFilters({ ...tempFilters, [e.target.name]: e.target.value });
+
+    const applyAdvancedFilters = (e) => {
+      e.preventDefault();
+      setAdvancedFilters(tempFilters);
+      setOpenAdvanced(false);
+      setCurrentPageNumber(1);
+    };
+
+    const clearAdvancedFilters = () => {
+      setAdvancedFilters(initialFilters);
+      setTempFilters(initialFilters);
+      setOpenAdvanced(false);
+      setCurrentPageNumber(1);
+    };
+
+    const filteredContracts = contracts.filter((c) => {
+      const termMatch = searchTerm
+        ? (c.contractOwner || "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          (c.eventDate || "").includes(searchTerm)
+        : true;
+      const adv = advancedFilters;
+      const ownerMatch = adv.contractOwner
+        ? (c.contractOwner || "")
+            .toLowerCase()
+            .includes(adv.contractOwner.toLowerCase())
+        : true;
+      const groomFirstMatch = adv.groomFirstName
+        ? (c.groomFirstName || "")
+            .toLowerCase()
+            .includes(adv.groomFirstName.toLowerCase())
+        : true;
+      const groomLastMatch = adv.groomLastName
+        ? (c.groomLastName || "")
+            .toLowerCase()
+            .includes(adv.groomLastName.toLowerCase())
+        : true;
+      const spouseFirstMatch = adv.spouseFirstName
+        ? (c.spouseFirstName || "")
+            .toLowerCase()
+            .includes(adv.spouseFirstName.toLowerCase())
+        : true;
+      const spouseLastMatch = adv.spouseLastName
+        ? (c.spouseLastName || "")
+            .toLowerCase()
+            .includes(adv.spouseLastName.toLowerCase())
+        : true;
+      const eventDateMatch = adv.eventDate
+        ? (c.eventDate || "").includes(adv.eventDate)
+        : true;
+      return (
+        termMatch &&
+        ownerMatch &&
+        groomFirstMatch &&
+        groomLastMatch &&
+        spouseFirstMatch &&
+        spouseLastMatch &&
+        eventDateMatch
+      );
+    });
 
     const indexOfLastContract = currentPageNumber * contractsPerPage;
     const indexOfFirstContract = indexOfLastContract - contractsPerPage;
@@ -1789,6 +1860,93 @@ export default function App() {
                 placeholder="جستجو بر اساس نام یا تاریخ..."
               />
               <div className="flex flex-wrap gap-2">
+                <Dialog
+                  open={openAdvanced}
+                  onOpenChange={(o) => {
+                    setOpenAdvanced(o);
+                    if (o) setTempFilters(advancedFilters);
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Search className="h-4 w-4 mr-2" /> جستجوی پیشرفته
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>جستجوی پیشرفته قرارداد</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={applyAdvancedFilters} className="space-y-4 mt-4">
+                      <div>
+                        <Label htmlFor="adv-contractOwner">نام صاحب قرارداد</Label>
+                        <Input
+                          id="adv-contractOwner"
+                          name="contractOwner"
+                          value={tempFilters.contractOwner}
+                          onChange={handleAdvancedChange}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="adv-groomFirstName">نام داماد</Label>
+                          <Input
+                            id="adv-groomFirstName"
+                            name="groomFirstName"
+                            value={tempFilters.groomFirstName}
+                            onChange={handleAdvancedChange}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="adv-groomLastName">نام خانوادگی داماد</Label>
+                          <Input
+                            id="adv-groomLastName"
+                            name="groomLastName"
+                            value={tempFilters.groomLastName}
+                            onChange={handleAdvancedChange}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="adv-spouseFirstName">نام عروس</Label>
+                          <Input
+                            id="adv-spouseFirstName"
+                            name="spouseFirstName"
+                            value={tempFilters.spouseFirstName}
+                            onChange={handleAdvancedChange}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="adv-spouseLastName">نام خانوادگی عروس</Label>
+                          <Input
+                            id="adv-spouseLastName"
+                            name="spouseLastName"
+                            value={tempFilters.spouseLastName}
+                            onChange={handleAdvancedChange}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="adv-eventDate">تاریخ مراسم</Label>
+                        <Input
+                          id="adv-eventDate"
+                          name="eventDate"
+                          value={tempFilters.eventDate}
+                          onChange={handleAdvancedChange}
+                          placeholder="مثلاً 1402/01/01"
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={clearAdvancedFilters}
+                        >
+                          پاکسازی
+                        </Button>
+                        <Button type="submit">جستجو</Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
                 {allowedPages.includes("mySettings") && (
                   <Button
                     onClick={() => navigate("mySettings")}
