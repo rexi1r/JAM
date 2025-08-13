@@ -2130,14 +2130,13 @@ export default function App() {
                               </DialogHeader>
                               <div
                                 className={`grid grid-cols-1 gap-4 mt-4 text-sm ${
-                                  isAdmin ? "md:grid-cols-3" : ""
+                                  isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"
                                 }`}
                               >
-                                {isAdmin && (
-                                  <div className="space-y-2">
-                                    <h4 className="font-semibold border-b pb-1">
-                                      اطلاعات کلی
-                                    </h4>
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold border-b pb-1">
+                                    اطلاعات کلی
+                                  </h4>
                                   <p>
                                     <strong>نام داماد:</strong>{" "}
                                     {c.groomFirstName} {c.groomLastName} (
@@ -2184,7 +2183,6 @@ export default function App() {
                                     <strong>توضیحات:</strong> {c.extraDetails}
                                   </p>
                                 </div>
-                                )}
                                 <div className="space-y-2">
                                   <h4 className="font-semibold border-b pb-1 text-blue-600">
                                     هزینه‌های مشتری
