@@ -2188,12 +2188,11 @@ function UserManagement({ showError, navigate, BackButton }) {
                                   selectedRole && p.key === "userManagement"
                                 }
                                 onCheckedChange={(checked) => {
-                                  const updated = checked
-                                    ? [...selectedPages, p.key]
-                                    : selectedPages.filter(
-                                        (ap) => ap !== p.key
-                                      );
-                                  setSelectedPages(updated);
+                                  setSelectedPages((prev) =>
+                                    checked
+                                      ? [...prev, p.key]
+                                      : prev.filter((ap) => ap !== p.key)
+                                  );
                                 }}
                               />
                               <Label htmlFor={`perm-${user._id}-${p.key}`}>
