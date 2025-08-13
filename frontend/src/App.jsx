@@ -1945,7 +1945,21 @@ function UserManagement({ showError, navigate, BackButton }) {
       });
       if (res.ok) {
         alert("دسترسی‌ها به‌روزرسانی شد.");
-        fetchUsers();
+        // Optimistically update UI
+        setUsers((users) =>
+          users.map((u) =>
+            u._id === id
+              ? {
+                  ...u,
+                  allowedPages: isAdmin
+                    ? PAGE_OPTIONS.map((p) => p.key)
+                    : pages,
+                  role: isAdmin ? "admin" : "user",
+                }
+              : u
+          )
+        );
+        await fetchUsers();
         return true;
       } else {
         showError("خطا در به‌روزرسانی دسترسی‌ها.");
