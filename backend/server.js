@@ -110,6 +110,7 @@ const connectWithRetry = () => {
       mongoConnected = true;
       console.log("Connected to MongoDB");
       await createDefaultAdmin();
+      await SampleData.seed();
     })
     .catch((err) => {
       console.error("MongoDB connection error:", err.message);
@@ -241,6 +242,95 @@ const contractSchema = new mongoose.Schema(
 );
 
 const Contract = mongoose.model("Contract", contractSchema);
+
+// --- Sample data seeding
+class SampleData {
+  static async seedSettings() {
+    const myCount = await MySettings.countDocuments();
+    if (myCount === 0) {
+      await MySettings.create({
+        defaultHourlyRate: 500000,
+        defaultExtraHourPrice: 300000,
+        defaultServiceFeePerPerson: 50000,
+        defaultTaxRate: 9,
+        defaultJuicePricePerPerson: 20000,
+        defaultTeaPricePerPerson: 10000,
+        defaultFireworkPricePerUnit: 50000,
+        defaultCandlePrice: 15000,
+        defaultFlowerPrice: 30000,
+        defaultWaterPricePerUnit: 5000,
+        defaultDinnerPricePerPerson: 100000,
+      });
+    }
+
+    const customerCount = await CustomerSettings.countDocuments();
+    if (customerCount === 0) {
+      await CustomerSettings.create({
+        defaultHourlyRate: 700000,
+        defaultExtraHourPrice: 400000,
+        defaultServiceFeePerPerson: 60000,
+        defaultTaxRate: 9,
+        defaultJuicePricePerPerson: 25000,
+        defaultTeaPricePerPerson: 12000,
+        defaultFireworkPricePerUnit: 70000,
+        defaultCandlePrice: 20000,
+        defaultFlowerPrice: 40000,
+        defaultWaterPricePerUnit: 7000,
+        defaultDinnerPricePerPerson: 150000,
+      });
+    }
+  }
+
+  static async seedContract() {
+    const count = await Contract.countDocuments();
+    if (count === 0) {
+      await Contract.create({
+        contractOwner: "نمونه",
+        groomFirstName: "علی",
+        groomLastName: "رضایی",
+        groomNationalId: "1234567890",
+        spouseFirstName: "سمیرا",
+        spouseLastName: "کریمی",
+        spouseNationalId: "0987654321",
+        address: "تهران",
+        phone: "0912000000",
+        email: "sample@example.com",
+        inviteesCount: 120,
+        eventDate: "1403/01/01",
+        startTime: "18:00",
+        endTime: "23:00",
+        serviceStaffCount: 5,
+        juiceCount: 120,
+        teaCount: 120,
+        fireworkCount: 10,
+        waterCount: 120,
+        dinnerCount: 120,
+        discount: 0,
+        extraDetails: "نمونه قرارداد برای شروع",
+        extraItems: [{ title: "نورپردازی اضافه", price: 500000 }],
+        customerTotalCost: 10000000,
+        myTotalCost: 7000000,
+        status: "final",
+        includeCandle: true,
+        includeFlower: true,
+        includeJuice: true,
+        includeTea: true,
+        includeFirework: true,
+        includeWater: true,
+        includeDinner: true,
+      });
+    }
+  }
+
+  static async seed() {
+    try {
+      await this.seedSettings();
+      await this.seedContract();
+    } catch (err) {
+      console.error("Error seeding sample data:", err.message);
+    }
+  }
+}
 
 // --- Helpers
 const escapeRegExp = (str = "") => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
