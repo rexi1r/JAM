@@ -82,7 +82,10 @@ export const useStore = create((set) => ({
   updateMySettings: (settings) => set({ mySettings: settings }),
   updateCustomerSettings: (settings) => set({ customerSettings: settings }),
 
-  setUsers: (users) => set({ users }),
+  setUsers: (users) =>
+    set((state) => ({
+      users: typeof users === "function" ? users(state.users) : users,
+    })),
   setAllowedPages: (allowedPages) => {
     localStorage.setItem("allowedPages", JSON.stringify(allowedPages));
     set({ allowedPages });
