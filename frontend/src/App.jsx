@@ -8,6 +8,8 @@ import persian_fa from "react-date-object/locales/persian_fa";
 import DateObject from "react-date-object";
 import StaggeredGrid from "@/components/StaggeredGrid";
 import StudioContract from "./StudioContract";
+import HallContracts from "./HallContracts";
+import StudioContracts from "./StudioContracts";
 
 // Shadcn UI components and Lucide-React for icons
 import { Button } from "@/components/ui/button";
@@ -65,6 +67,8 @@ const PAGE_OPTIONS = [
   { key: "userManagement", label: "مدیریت کاربران" },
   { key: "createContract", label: "ثبت قرارداد سالن عقد" },
   { key: "studioContract", label: "ثبت قرارداد استدیو جم" },
+  { key: "hallContracts", label: "قراردادهای سالن عقد" },
+  { key: "studioContracts", label: "قراردادهای استدیو جم" },
 ];
 
 // ------------------------------------------------------------------
@@ -2100,6 +2104,22 @@ export default function App() {
                     <FileText className="h-4 w-4 mr-2" /> قرارداد استدیو جم
                   </Button>
                 )}
+                {allowedPages.includes("hallContracts") && (
+                  <Button
+                    onClick={() => navigate("hallContracts")}
+                    variant="secondary"
+                  >
+                    <FileText className="h-4 w-4 mr-2" /> قرارداد های سالن عقد
+                  </Button>
+                )}
+                {allowedPages.includes("studioContracts") && (
+                  <Button
+                    onClick={() => navigate("studioContracts")}
+                    variant="secondary"
+                  >
+                    <FileText className="h-4 w-4 mr-2" /> قرارداد های استدیو جم
+                  </Button>
+                )}
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -2621,6 +2641,10 @@ export default function App() {
             showError={showError}
           />
         );
+      case "hallContracts":
+        return <HallContracts BackButton={BackButton} />;
+      case "studioContracts":
+        return <StudioContracts BackButton={BackButton} />;
       case "contractsList":
         return <ContractsList />;
       case "reporting":
