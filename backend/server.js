@@ -367,7 +367,19 @@ app.post(
       const exists = await User.findOne({ username });
       if (exists)
         return res.status(400).json({ message: "User already exists" });
-      const user = new User({ username, password, role, allowedPages });
+      if (role === "admin") {
+        const adminExists = await User.findOne({ role: "admin" });
+        if (adminExists)
+          return res
+            .status(400)
+            .json({ message: "Admin user already exists" });
+      }
+      const user = new User({
+        username,
+        password,
+        role,
+        allowedPages: role === "admin" ? PAGE_NAMES : allowedPages,
+      });
       await user.save();
       return res.status(201).json({ message: "User created successfully" });
     } catch (e) {
@@ -391,11 +403,12 @@ app.put(
     [Segments.BODY]: Joi.object({
       password: Joi.string().min(6).max(128),
       allowedPages: Joi.array().items(Joi.string()),
-    }).or("password", "allowedPages"),
+      role: Joi.string().valid("admin", "user"),
+    }).or("password", "allowedPages", "role"),
   }),
   async (req, res) => {
     const { id } = req.params;
-    const { password, allowedPages } = req.body;
+    const { password, allowedPages, role } = req.body;
     try {
       const user = await User.findById(id);
       if (!user) return res.status(404).json({ message: "User not found" });
@@ -403,8 +416,26 @@ app.put(
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(password, salt);
       }
-      if (allowedPages) {
-        user.allowedPages = allowedPages;
+      if (role === "admin" && user.role !== "admin") {
+        const adminExists = await User.findOne({
+          role: "admin",
+          _id: { $ne: id },
+        });
+        if (adminExists)
+          return res
+            .status(400)
+            .json({ message: "Admin user already exists" });
+        user.role = "admin";
+        user.allowedPages = PAGE_NAMES;
+      } else if (role === "user" && user.role === "admin") {
+        user.role = "user";
+        if (allowedPages) user.allowedPages = allowedPages;
+      } else {
+        if (allowedPages) user.allowedPages = allowedPages;
+      }
+      // ensure admin always has all pages including userManagement
+      if (user.role === "admin") {
+        user.allowedPages = PAGE_NAMES;
       }
       await user.save();
       return res.json({ message: "User updated successfully" });

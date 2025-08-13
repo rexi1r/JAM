@@ -2241,6 +2241,7 @@ function UserManagement({ showError, navigate, BackButton }) {
   const [openPasswordDialog, setOpenPasswordDialog] = useState(null);
   const [openAccessDialog, setOpenAccessDialog] = useState(null);
   const [selectedPages, setSelectedPages] = useState([]);
+  const [selectedRole, setSelectedRole] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -2301,11 +2302,14 @@ function UserManagement({ showError, navigate, BackButton }) {
     }
   };
 
-  const handleUpdatePermissions = async (id, pages) => {
+  const handleUpdatePermissions = async (id, pages, isAdmin) => {
     try {
       const res = await fetchWithAuth(`${API_BASE_URL}/api/users/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ allowedPages: pages }),
+        body: JSON.stringify({
+          allowedPages: isAdmin ? PAGE_OPTIONS.map((p) => p.key) : pages,
+          role: isAdmin ? "admin" : "user",
+        }),
       });
       if (res.ok) {
         alert("دسترسی‌ها به‌روزرسانی شد.");
@@ -2362,12 +2366,35 @@ function UserManagement({ showError, navigate, BackButton }) {
                 />
               </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="new-isAdmin"
+                checked={newUser.role === "admin"}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    if (users.some((u) => u.role === "admin")) {
+                      alert("فقط یک کاربر مدیر مجاز است");
+                      return;
+                    }
+                    setNewUser({
+                      ...newUser,
+                      role: "admin",
+                      allowedPages: PAGE_OPTIONS.map((p) => p.key),
+                    });
+                  } else {
+                    setNewUser({ ...newUser, role: "user", allowedPages: [] });
+                  }
+                }}
+              />
+              <Label htmlFor="new-isAdmin">کاربر مدیر</Label>
+            </div>
             <div className="flex flex-wrap gap-4">
               {PAGE_OPTIONS.map((p) => (
                 <div key={p.key} className="flex items-center space-x-2">
                   <Checkbox
                     id={`new-${p.key}`}
                     checked={newUser.allowedPages.includes(p.key)}
+                    disabled={newUser.role === "admin"}
                     onCheckedChange={(checked) => {
                       const updated = checked
                         ? [...newUser.allowedPages, p.key]
@@ -2453,7 +2480,10 @@ function UserManagement({ showError, navigate, BackButton }) {
                     <Dialog
                       open={openAccessDialog === user._id}
                       onOpenChange={(open) => {
-                        if (open) setSelectedPages(user.allowedPages || []);
+                        if (open) {
+                          setSelectedPages(user.allowedPages || []);
+                          setSelectedRole(user.role === "admin");
+                        }
                         setOpenAccessDialog(open ? user._id : null);
                       }}
                     >
@@ -2468,12 +2498,36 @@ function UserManagement({ showError, navigate, BackButton }) {
                             تنظیم دسترسی برای {user.username}
                           </DialogTitle>
                         </DialogHeader>
+                        <div className="flex items-center space-x-2 py-2">
+                          <Checkbox
+                            id={`admin-${user._id}`}
+                            checked={selectedRole}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                if (
+                                  users.some(
+                                    (u) => u.role === "admin" && u._id !== user._id
+                                  )
+                                ) {
+                                  alert("فقط یک کاربر مدیر مجاز است");
+                                  return;
+                                }
+                                setSelectedRole(true);
+                                setSelectedPages(PAGE_OPTIONS.map((p) => p.key));
+                              } else {
+                                setSelectedRole(false);
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`admin-${user._id}`}>کاربر مدیر</Label>
+                        </div>
                         <div className="flex flex-wrap gap-4 py-4">
                           {PAGE_OPTIONS.map((p) => (
                             <div key={p.key} className="flex items-center space-x-2">
                               <Checkbox
                                 id={`perm-${user._id}-${p.key}`}
                                 checked={selectedPages.includes(p.key)}
+                                disabled={selectedRole && p.key === "userManagement"}
                                 onCheckedChange={(checked) => {
                                   const updated = checked
                                     ? [...selectedPages, p.key]
@@ -2491,7 +2545,8 @@ function UserManagement({ showError, navigate, BackButton }) {
                           onClick={async () => {
                             const ok = await handleUpdatePermissions(
                               user._id,
-                              selectedPages
+                              selectedPages,
+                              selectedRole
                             );
                             if (ok) setOpenAccessDialog(null);
                           }}
