@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 const variants = {
   hidden: { opacity: 0, scale: 0.5 },
@@ -41,17 +41,19 @@ export default function StaggeredGrid({
     setOrigin(index);
   }, [baseDelay, noise, total]);
 
+  const gridStyle = {
+    gridTemplateColumns: `repeat(${cols}, ${size}px)`,
+    gridTemplateRows: `repeat(${rows}, ${size}px)`,
+    width: cols * size,
+    height: rows * size,
+  };
+
   return (
-    <div className="pointer-events-none absolute inset-0 flex items-center justify-center -z-10">
+    <>
       <motion.div
         ref={ref}
         className="grid gap-2"
-        style={{
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
-          width: size,
-          height: size,
-        }}
+        style={gridStyle}
         initial="hidden"
         animate={origin !== null ? "visible" : "hidden"}
       >
@@ -80,6 +82,6 @@ export default function StaggeredGrid({
           background-color: var(--hue-1, #3b82f6);
         }
       `}</style>
-    </div>
+    </>
   );
 }

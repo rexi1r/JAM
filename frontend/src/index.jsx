@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { LazyMotion, domAnimation } from 'framer-motion'
+import { LazyMotion, domAnimation } from 'motion/react'
 import './index.css'
 import App from './App.jsx'
 
