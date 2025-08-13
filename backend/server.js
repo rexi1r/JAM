@@ -835,6 +835,45 @@ app.post(
   }
 );
 
+app.get(
+  "/api/contracts/search",
+  authMiddleware,
+  celebrate({
+    [Segments.QUERY]: Joi.object({
+      searchTerm: Joi.string().allow("").default(""),
+      page: Joi.number().integer().min(1).default(1),
+      limit: Joi.number().integer().min(1).max(50).default(10),
+    }),
+  }),
+  async (req, res) => {
+    const { searchTerm, page, limit } = req.query;
+    try {
+      const query = {};
+      if (searchTerm) {
+        const safe = escapeRegExp(searchTerm);
+        query.$or = [
+          { contractOwner: { $regex: safe, $options: "i" } },
+          { eventDate: { $regex: safe, $options: "i" } },
+        ];
+      }
+      const skip = (Number(page) - 1) * Number(limit);
+      const [contracts, totalCount] = await Promise.all([
+        Contract.find(query).skip(skip).limit(Number(limit)),
+        Contract.countDocuments(query),
+      ]);
+      return res.json({
+        contracts,
+        totalCount,
+        page: Number(page),
+        limit: Number(limit),
+      });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Server error");
+    }
+  }
+);
+
 app.get("/api/contracts/:id", authMiddleware, async (req, res) => {
   try {
     const contract = await Contract.findById(req.params.id);
@@ -902,45 +941,6 @@ app.delete("/api/contracts/:id", authMiddleware, async (req, res) => {
     return res.status(500).send("Server error");
   }
 });
-
-app.get(
-  "/api/contracts/search",
-  authMiddleware,
-  celebrate({
-    [Segments.QUERY]: Joi.object({
-      searchTerm: Joi.string().allow("").default(""),
-      page: Joi.number().integer().min(1).default(1),
-      limit: Joi.number().integer().min(1).max(50).default(10),
-    }),
-  }),
-  async (req, res) => {
-    const { searchTerm, page, limit } = req.query;
-    try {
-      const query = {};
-      if (searchTerm) {
-        const safe = escapeRegExp(searchTerm);
-        query.$or = [
-          { contractOwner: { $regex: safe, $options: "i" } },
-          { eventDate: { $regex: safe, $options: "i" } },
-        ];
-      }
-      const skip = (Number(page) - 1) * Number(limit);
-      const [contracts, totalCount] = await Promise.all([
-        Contract.find(query).skip(skip).limit(Number(limit)),
-        Contract.countDocuments(query),
-      ]);
-      return res.json({
-        contracts,
-        totalCount,
-        page: Number(page),
-        limit: Number(limit),
-      });
-    } catch (e) {
-      console.error(e);
-      return res.status(500).send("Server error");
-    }
-  }
-);
 
 app.get("/api/contracts/reporting", authMiddleware, async (req, res) => {
   try {
