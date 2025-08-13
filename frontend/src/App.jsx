@@ -421,7 +421,7 @@ export default function App() {
 
     return (
       <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4 overflow-hidden">
-        <StaggeredGrid />
+        <StaggeredGrid cols={2} rows={2} size={200} />
         <BackButton />
         <Card className="w-full max-w-md">
           <CardHeader>

@@ -11,18 +11,26 @@ function getCenter(el) {
   return { x: x + width / 2, y: y + height / 2 };
 }
 
-export default function StaggeredGrid({ baseDelay = 0.0015, noise = 0.1 }) {
+export default function StaggeredGrid({
+  cols = 10,
+  rows = 10,
+  size = 400,
+  baseDelay = 0.0015,
+  noise = 0.1,
+}) {
   const ref = useRef(null);
   const [origin, setOrigin] = useState(null);
   const [delays, setDelays] = useState([]);
 
+  const total = cols * rows;
+
   useEffect(() => {
-    const index = Math.floor(Math.random() * 100);
+    const index = Math.floor(Math.random() * total);
     const cells = ref.current?.querySelectorAll(".cell");
     if (!cells) return;
     const originPos = getCenter(cells[index]);
     const ds = [];
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < total; i++) {
       const pos = getCenter(cells[i]);
       const dist = Math.sqrt(
         (pos.x - originPos.x) ** 2 + (pos.y - originPos.y) ** 2
@@ -31,17 +39,23 @@ export default function StaggeredGrid({ baseDelay = 0.0015, noise = 0.1 }) {
     }
     setDelays(ds);
     setOrigin(index);
-  }, [baseDelay, noise]);
+  }, [baseDelay, noise, total]);
 
   return (
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center -z-10">
       <motion.div
         ref={ref}
-        className="grid grid-cols-10 grid-rows-10 gap-2 w-[400px] h-[400px]"
+        className="grid gap-2"
+        style={{
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: `repeat(${rows}, 1fr)`,
+          width: size,
+          height: size,
+        }}
         initial="hidden"
         animate={origin !== null ? "visible" : "hidden"}
       >
-        {Array.from({ length: 100 }).map((_, i) => (
+        {Array.from({ length: total }).map((_, i) => (
           <motion.div
             key={i}
             className={`cell ${i === origin ? "origin" : ""}`}
