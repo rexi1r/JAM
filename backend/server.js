@@ -131,6 +131,13 @@ const PAGE_NAMES = [
   "userManagement",
   "createContract",
   "studioContract",
+  // Pages related to contract listings were missing here which caused
+  // selected permissions for these sections to be discarded on save.
+  // Including them ensures allowedPages for admin users cover every
+  // page exposed on the frontend.
+  "contractsList",
+  "hallContracts",
+  "studioContracts",
 ];
 
 const userSchema = new mongoose.Schema(
