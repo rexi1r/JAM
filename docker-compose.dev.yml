@@ -1,0 +1,19 @@
+services:
+  backend:
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: ["npx","nodemon","server.js"]
+    environment:
+      NODE_ENV: development
+
+  frontend:
+    build: null
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: ["npm","run","dev","--","--host","--port","80"]
+    environment:
+      NODE_ENV: development

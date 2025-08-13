@@ -39,18 +39,49 @@ JWT_REFRESH_SECRET=<یک رشته‌ی تصادفی>
 ALLOWED_ORIGINS=http://localhost,http://localhost:3000
 ```
 
-2. سپس در ریشهٔ پروژه دستور زیر را اجرا کنید:
+2. سپس در ریشهٔ پروژه برحسب نیاز یکی از دستورات زیر را اجرا کنید:
 
-```bash
-docker compose up --build
-```
+   - اجرای معمولی با build کامل:
 
-این دستور سرویس‌های `mongo`، `backend`، `frontend` (برای توسعه) و `nginx` را اجرا می‌کند. پس از build، برنامه از طریق آدرس زیر در دسترس است:
+     ```bash
+     docker compose up --build
+     ```
+
+   - اجرای سریع برای توسعه با مانیتورینگ تغییرات (Hot Reload):
+
+     ```bash
+     docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+     ```
+
+این دستورات سرویس‌های `mongo`، `backend`، `frontend` و `nginx` را اجرا می‌کنند. پس از اجرا، برنامه از طریق آدرس زیر در دسترس است:
 
 - Backend API: [http://localhost/api](http://localhost/api)
 - فرانت‌اند (React dev server): [http://localhost](http://localhost)
 
 > نکته: در محیط توسعه، ارتباط روی HTTP (پورت 80) انجام می‌شود و نیازی به گواهی SSL نیست.
+
+### پاکسازی کامل و بیلد مجدد
+
+اگر می‌خواهید همهٔ کانتینرها، ایمیج‌ها و ولوم‌های ساخته‌شده را حذف کنید و از ابتدا پروژه را بیلد نمایید:
+
+```bash
+docker compose down --rmi all --volumes --remove-orphans
+docker compose up --build
+```
+
+### ریستارت کردن یک سرویس خاص
+
+برای راه‌اندازی مجدد یک سرویس بدون متوقف کردن سایر سرویس‌ها:
+
+```bash
+docker compose restart backend   # مثال: ریستارت سرویس backend
+```
+
+و اگر Dockerfile همان سرویس تغییر کرده باشد و نیاز به بیلد مجدد دارید:
+
+```bash
+docker compose up --build backend
+```
 
 ---
 
