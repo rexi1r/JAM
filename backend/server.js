@@ -244,6 +244,45 @@ const contractSchema = new mongoose.Schema(
 
 const Contract = mongoose.model("Contract", contractSchema);
 
+const studioContractSchema = new mongoose.Schema(
+  {
+    fullName: { type: String, required: true, index: true },
+    ceremonyType: { type: String, default: "" },
+    invoiceDate: { type: String, default: "" },
+    lunch: { type: String, default: "" },
+    dinner: { type: String, default: "" },
+    homeAddress: { type: String, default: "" },
+    groomName: { type: String, default: "" },
+    groomPhone: { type: String, default: "" },
+    brideName: { type: String, default: "" },
+    bridePhone: { type: String, default: "" },
+    ceremonyLocation: { type: String, default: "" },
+    clipProduction: { type: Boolean, default: false },
+    insideProvince: { type: Boolean, default: false },
+    outsideProvince: { type: Boolean, default: false },
+    notes: { type: String, default: "" },
+    hennaDate: { type: String, default: "" },
+    engagementDate: { type: String, default: "" },
+    weddingDate: { type: String, default: "" },
+    services: {
+      type: [
+        {
+          name: String,
+          quantity: String,
+          price: String,
+          details: String,
+        },
+      ],
+      default: [],
+    },
+    totalPrice: { type: String, default: "" },
+    prePayment: { type: String, default: "" },
+  },
+  { timestamps: true }
+);
+
+const StudioContract = mongoose.model("StudioContract", studioContractSchema);
+
 const contractBodySchema = Joi.object({
   contractOwner: Joi.string().required(),
   groomFirstName: Joi.string().required(),
@@ -288,6 +327,39 @@ const contractBodySchema = Joi.object({
   includeFirework: Joi.boolean().default(false),
   includeWater: Joi.boolean().default(false),
   includeDinner: Joi.boolean().default(false),
+}).unknown(false);
+
+const studioContractBodySchema = Joi.object({
+  fullName: Joi.string().required(),
+  ceremonyType: Joi.string().allow("").default(""),
+  invoiceDate: Joi.string().allow("").default(""),
+  lunch: Joi.string().allow("").default(""),
+  dinner: Joi.string().allow("").default(""),
+  homeAddress: Joi.string().allow("").default(""),
+  groomName: Joi.string().allow("").default(""),
+  groomPhone: Joi.string().allow("").default(""),
+  brideName: Joi.string().allow("").default(""),
+  bridePhone: Joi.string().allow("").default(""),
+  ceremonyLocation: Joi.string().allow("").default(""),
+  clipProduction: Joi.boolean().default(false),
+  insideProvince: Joi.boolean().default(false),
+  outsideProvince: Joi.boolean().default(false),
+  notes: Joi.string().allow("").default(""),
+  hennaDate: Joi.string().allow("").default(""),
+  engagementDate: Joi.string().allow("").default(""),
+  weddingDate: Joi.string().allow("").default(""),
+  services: Joi.array()
+    .items(
+      Joi.object({
+        name: Joi.string().required(),
+        quantity: Joi.string().allow("").default(""),
+        price: Joi.string().allow("").default(""),
+        details: Joi.string().allow("").default(""),
+      })
+    )
+    .default([]),
+  totalPrice: Joi.string().allow("").default(""),
+  prePayment: Joi.string().allow("").default(""),
 }).unknown(false);
 
 // --- Sample data seeding
@@ -817,6 +889,32 @@ app.post(
     }
   }
 );
+
+// Studio Contracts
+app.post(
+  "/api/studio-contracts",
+  authMiddleware,
+  celebrate({ [Segments.BODY]: studioContractBodySchema }),
+  async (req, res) => {
+    try {
+      const doc = await StudioContract.create(req.body);
+      return res.status(201).json(doc);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Server error");
+    }
+  }
+);
+
+app.get("/api/studio-contracts", authMiddleware, async (req, res) => {
+  try {
+    const docs = await StudioContract.find({}).sort({ createdAt: -1 });
+    return res.json(docs);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("Server error");
+  }
+});
 
 // Contracts
 app.post(

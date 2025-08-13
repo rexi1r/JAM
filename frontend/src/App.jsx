@@ -2607,7 +2607,13 @@ export default function App() {
       case "createContract":
         return <CreateContract />;
       case "studioContract":
-        return <StudioContract />;
+        return (
+          <StudioContract
+            BackButton={BackButton}
+            navigate={navigate}
+            showError={showError}
+          />
+        );
       case "contractsList":
         return <ContractsList />;
       case "reporting":
