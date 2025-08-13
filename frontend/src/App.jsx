@@ -5,6 +5,7 @@ import DatePicker from "react-multi-date-picker";
 import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
+import DateObject from "react-date-object";
 
 // Shadcn UI components and Lucide-React for icons
 import { Button } from "@/components/ui/button";
@@ -224,6 +225,12 @@ const to24Hour = (time) => {
     if (lower === "am" && hour === 12) hour = 0;
   }
   return `${String(hour).padStart(2, "0")}:${minute}`;
+};
+
+const timeToDateObject = (time) => {
+  if (!time) return null;
+  const [hour, minute] = time.split(":").map(Number);
+  return new DateObject({ hour, minute, calendar: persian, locale: persian_fa });
 };
 
 const normalizeContractTimes = (contracts = []) =>
@@ -1075,7 +1082,7 @@ export default function App() {
                         calendar={persian}
                         locale={persian_fa}
                         plugins={[<TimePicker hideSeconds />]}
-                        value={contract.startTime}
+                        value={timeToDateObject(contract.startTime)}
                         onChange={(value) =>
                           handleChange({
                             target: {
@@ -1098,7 +1105,7 @@ export default function App() {
                         calendar={persian}
                         locale={persian_fa}
                         plugins={[<TimePicker hideSeconds />]}
-                        value={contract.endTime}
+                        value={timeToDateObject(contract.endTime)}
                         onChange={(value) =>
                           handleChange({
                             target: {
