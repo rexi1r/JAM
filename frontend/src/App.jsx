@@ -838,8 +838,9 @@ export default function App() {
           (next.customerWaterPrice || 0) +
           extraItemsTotal -
           (parseFloat(next.discount) || 0);
+        // defaultTaxRate is stored as a percentage (0-100)
         next.customerTax =
-          customerTotalWithoutTax * customerSettings.defaultTaxRate;
+          (customerTotalWithoutTax * customerSettings.defaultTaxRate) / 100;
         next.customerTotalCost = customerTotalWithoutTax + next.customerTax;
 
         if (!overridden.myEntryFee)
@@ -890,7 +891,8 @@ export default function App() {
           (next.myWaterPrice || 0) +
           extraItemsTotal -
           (parseFloat(next.discount) || 0);
-        next.myTax = myTotalWithoutTax * mySettings.defaultTaxRate;
+        // defaultTaxRate is stored as a percentage (0-100)
+        next.myTax = (myTotalWithoutTax * mySettings.defaultTaxRate) / 100;
         next.myTotalCost = myTotalWithoutTax + next.myTax;
       }
       setContract(next);
