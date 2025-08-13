@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { create } from "zustand";
 import "./index.css";
 import DatePicker from "react-multi-date-picker";
+import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
+import DateObject from "react-date-object";
 
 // Shadcn UI components and Lucide-React for icons
 import { Button } from "@/components/ui/button";
@@ -223,6 +225,12 @@ const to24Hour = (time) => {
     if (lower === "am" && hour === 12) hour = 0;
   }
   return `${String(hour).padStart(2, "0")}:${minute}`;
+};
+
+const timeToDateObject = (time) => {
+  if (!time) return null;
+  const [hour, minute] = time.split(":").map(Number);
+  return new DateObject({ hour, minute, calendar: persian, locale: persian_fa });
 };
 
 const normalizeContractTimes = (contracts = []) =>
@@ -1068,26 +1076,48 @@ export default function App() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="startTime">ساعت شروع</Label>
-                      <Input
-                        type="time"
-                        id="startTime"
-                        name="startTime"
-                        lang="fa-IR"
-                        value={contract.startTime}
-                        onChange={handleChange}
-                        required
+                      <DatePicker
+                        disableDayPicker
+                        format="HH:mm"
+                        calendar={persian}
+                        locale={persian_fa}
+                        plugins={[<TimePicker hideSeconds />]}
+                        value={timeToDateObject(contract.startTime)}
+                        onChange={(value) =>
+                          handleChange({
+                            target: {
+                              name: "startTime",
+                              value: value?.format("HH:mm") || "",
+                              type: "time",
+                            },
+                          })
+                        }
+                        containerClassName="w-full"
+                        inputClass="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+                        inputProps={{ id: "startTime", name: "startTime", required: true }}
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="endTime">ساعت پایان</Label>
-                      <Input
-                        type="time"
-                        id="endTime"
-                        name="endTime"
-                        lang="fa-IR"
-                        value={contract.endTime}
-                        onChange={handleChange}
-                        required
+                      <DatePicker
+                        disableDayPicker
+                        format="HH:mm"
+                        calendar={persian}
+                        locale={persian_fa}
+                        plugins={[<TimePicker hideSeconds />]}
+                        value={timeToDateObject(contract.endTime)}
+                        onChange={(value) =>
+                          handleChange({
+                            target: {
+                              name: "endTime",
+                              value: value?.format("HH:mm") || "",
+                              type: "time",
+                            },
+                          })
+                        }
+                        containerClassName="w-full"
+                        inputClass="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+                        inputProps={{ id: "endTime", name: "endTime", required: true }}
                       />
                     </div>
                   </div>
