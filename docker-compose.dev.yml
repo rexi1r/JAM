@@ -14,6 +14,7 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    command: ["npm","run","dev","--","--host","--port","80"]
+    # نصب وابستگی‌ها در هر بار راه‌اندازی و سپس اجرای سرور توسعه
+    command: ["sh","-c","npm ci && npm run dev -- --host --port 80"]
     environment:
       NODE_ENV: development
