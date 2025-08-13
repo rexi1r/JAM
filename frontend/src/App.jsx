@@ -48,6 +48,8 @@ import {
   RefreshCcw,
   Shield,
   Search,
+  Pencil,
+  Trash,
 } from "lucide-react";
 
 // ------------------------------------------------------------------
@@ -109,6 +111,16 @@ const useStore = create((set) => ({
   setContracts: (contracts) => set({ contracts }),
   addContract: (contract) =>
     set((s) => ({ contracts: [contract, ...s.contracts] })),
+  updateContract: (contract) =>
+    set((s) => ({
+      contracts: s.contracts.map((c) =>
+        c._id === contract._id ? contract : c
+      ),
+    })),
+  removeContract: (id) =>
+    set((s) => ({ contracts: s.contracts.filter((c) => c._id !== id) })),
+  editingContract: null,
+  setEditingContract: (contract) => set({ editingContract: contract }),
 
   setMySettings: (settings) => set({ mySettings: settings }),
   setCustomerSettings: (settings) => set({ customerSettings: settings }),
@@ -576,8 +588,17 @@ export default function App() {
   // Create Contract
   // ------------------------------------------------------------------
   const CreateContract = () => {
-    const { mySettings, customerSettings, addContract, role } = useStore();
+    const {
+      mySettings,
+      customerSettings,
+      addContract,
+      updateContract,
+      editingContract,
+      setEditingContract,
+      role,
+    } = useStore();
     const isAdmin = role === "admin";
+    const isEditing = !!editingContract;
 
     const [contract, setContract] = useState({
       contractOwner: "",
@@ -641,6 +662,12 @@ export default function App() {
     const [generatedDraft, setGeneratedDraft] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [showDraftModal, setShowDraftModal] = useState(false);
+
+    useEffect(() => {
+      if (editingContract) {
+        setContract(editingContract);
+      }
+    }, [editingContract]);
 
     const handleChange = (e) => {
       const { name, value, type } = e.target;
@@ -900,22 +927,42 @@ export default function App() {
           startTime: to24Hour(contract.startTime),
           endTime: to24Hour(contract.endTime),
         };
-        const res = await fetchWithAuth(`${API_BASE_URL}/api/contracts`, {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
-        if (res.ok) {
-          const newContract = await res.json();
-          addContract({
-            ...newContract,
-            startTime: to24Hour(newContract.startTime),
-            endTime: to24Hour(newContract.endTime),
+        let res;
+        if (isEditing) {
+          res = await fetchWithAuth(
+            `${API_BASE_URL}/api/contracts/${editingContract._id}`,
+            {
+              method: "PUT",
+              body: JSON.stringify(payload),
+            }
+          );
+        } else {
+          res = await fetchWithAuth(`${API_BASE_URL}/api/contracts`, {
+            method: "POST",
+            body: JSON.stringify(payload),
           });
+        }
+        if (res.ok) {
+          const saved = await res.json();
+          if (isEditing) {
+            updateContract(
+              normalizeContractTimes([saved])[0]
+            );
+            setEditingContract(null);
+            alert("قرارداد با موفقیت به‌روزرسانی شد.");
+          } else {
+            addContract(normalizeContractTimes([saved])[0]);
+            alert("قرارداد با موفقیت ثبت شد.");
+          }
           navigate("contractsList");
-          alert("قرارداد با موفقیت ثبت شد.");
         } else {
           const t = await res.text();
-          showError(t || "خطا در ثبت قرارداد.");
+          showError(
+            t ||
+              (isEditing
+                ? "خطا در ویرایش قرارداد."
+                : "خطا در ثبت قرارداد.")
+          );
         }
       } catch (e) {
         showError("خطای سرور.");
@@ -935,7 +982,7 @@ export default function App() {
       <div className="container mx-auto p-8 min-h-screen font-iransans">
         <BackButton />
         <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
-          ثبت قرارداد جدید
+          {isEditing ? "ویرایش قرارداد" : "ثبت قرارداد جدید"}
         </h1>
         <Card className="max-w-6xl mx-auto">
           <CardContent className="pt-6">
@@ -1725,7 +1772,11 @@ export default function App() {
                     <option value="cancelled">کنسل</option>
                   </select>
                   <Button type="submit" disabled={isSaving}>
-                    {isSaving ? "در حال ذخیره..." : "ثبت قرارداد"}
+                    {isSaving
+                      ? "در حال ذخیره..."
+                      : isEditing
+                      ? "ذخیره تغییرات"
+                      : "ثبت قرارداد"}
                   </Button>
                 </div>
               </div>
@@ -1742,6 +1793,9 @@ export default function App() {
   const ContractsList = () => {
     const contracts = useStore((state) => state.contracts);
     const allowedPages = useStore((state) => state.allowedPages);
+    const removeContract = useStore((state) => state.removeContract);
+    const updateContract = useStore((state) => state.updateContract);
+    const setEditingContract = useStore((state) => state.setEditingContract);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPageNumber, setCurrentPageNumber] = useState(1);
     const contractsPerPage = 5;
@@ -1774,6 +1828,37 @@ export default function App() {
       setTempFilters(initialFilters);
       setOpenAdvanced(false);
       setCurrentPageNumber(1);
+    };
+
+    const handleDelete = async (id) => {
+      if (!window.confirm("آیا از حذف قرارداد مطمئن هستید؟")) return;
+      const res = await fetchWithAuth(
+        `${API_BASE_URL}/api/contracts/${id}`,
+        { method: "DELETE" }
+      );
+      if (res.ok) {
+        removeContract(id);
+      } else {
+        const t = await res.text();
+        showError(t || "خطا در حذف قرارداد.");
+      }
+    };
+
+    const handleStatusChange = async (id, status) => {
+      const res = await fetchWithAuth(
+        `${API_BASE_URL}/api/contracts/${id}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status }),
+        }
+      );
+      if (res.ok) {
+        const updated = await res.json();
+        updateContract(normalizeContractTimes([updated])[0]);
+      } else {
+        const t = await res.text();
+        showError(t || "خطا در تغییر وضعیت قرارداد.");
+      }
     };
 
     const filteredContracts = contracts.filter((c) => {
@@ -1980,7 +2065,12 @@ export default function App() {
                   </Button>
                 )}
                 {allowedPages.includes("createContract") && (
-                  <Button onClick={() => navigate("createContract")}>
+                  <Button
+                    onClick={() => {
+                      setEditingContract(null);
+                      navigate("createContract");
+                    }}
+                  >
                     <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد جدید
                   </Button>
                 )}
@@ -2011,6 +2101,7 @@ export default function App() {
                           تومان
                         </TableCell>
                         <TableCell>
+                          <div className="flex flex-col gap-2 sm:flex-row">
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button variant="outline" size="sm">
@@ -2302,6 +2393,33 @@ export default function App() {
                               </div>
                             </DialogContent>
                           </Dialog>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingContract(c);
+                              navigate("createContract");
+                            }}
+                          >
+                            <Pencil className="h-4 w-4 ml-2" /> ویرایش
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(c._id)}
+                          >
+                            <Trash className="h-4 w-4 ml-2" /> حذف
+                          </Button>
+                          <select
+                            value={c.status}
+                            onChange={(e) => handleStatusChange(c._id, e.target.value)}
+                            className="border rounded px-2 py-1 text-sm"
+                          >
+                            <option value="reservation">رزرو</option>
+                            <option value="final">نهایی</option>
+                            <option value="cancelled">کنسل</option>
+                          </select>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
