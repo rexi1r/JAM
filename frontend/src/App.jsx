@@ -10,6 +10,7 @@ import StudioContract from "./StudioContract";
 import HallContracts from "./HallContracts";
 import StudioContracts from "./StudioContracts";
 import Dashboard from "./Dashboard";
+import ContractsList from "./ContractsList";
 
 import {
   useStore,
@@ -74,6 +75,7 @@ const PAGE_OPTIONS = [
   { key: "userManagement", label: "مدیریت کاربران" },
   { key: "createContract", label: "ثبت قرارداد سالن عقد" },
   { key: "studioContract", label: "ثبت قرارداد استدیو جم" },
+  { key: "contractsList", label: "لیست قرارداد ها" },
   { key: "hallContracts", label: "قراردادهای سالن عقد" },
   { key: "studioContracts", label: "قراردادهای استدیو جم" },
 ];
@@ -1797,6 +1799,17 @@ export default function App() {
         );
       case "studioContracts":
         return <StudioContracts BackButton={BackButton} />;
+      case "contractsList":
+        return (
+          <ContractsList
+            BackButton={BackButton}
+            fetchAllData={fetchAllData}
+            handleLogout={handleLogout}
+            navigate={navigate}
+            showError={showError}
+            title="لیست قرارداد ها"
+          />
+        );
       case "dashboard":
         return (
           <Dashboard

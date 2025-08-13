@@ -69,6 +69,11 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
             <FileText className="h-4 w-4 mr-2" /> قرارداد استدیو جم
           </Button>
         )}
+        {allowedPages.includes("contractsList") && (
+          <Button onClick={() => navigate("contractsList")} variant="secondary">
+            <FileText className="h-4 w-4 mr-2" /> لیست قرارداد ها
+          </Button>
+        )}
         {allowedPages.includes("hallContracts") && (
           <Button onClick={() => navigate("hallContracts")} variant="secondary">
             <FileText className="h-4 w-4 mr-2" /> لیست قرارداد های سالن عقد
