@@ -9,7 +9,7 @@ import StaggeredGrid from "@/components/StaggeredGrid";
 import StudioContract from "./StudioContract";
 import HallContracts from "./HallContracts";
 import StudioContracts from "./StudioContracts";
-import ContractsList from "./ContractsList";
+import Dashboard from "./Dashboard";
 
 import {
   useStore,
@@ -1799,12 +1799,10 @@ export default function App() {
         return <StudioContracts BackButton={BackButton} />;
       case "dashboard":
         return (
-          <ContractsList
-            BackButton={BackButton}
+          <Dashboard
             fetchAllData={fetchAllData}
             handleLogout={handleLogout}
             navigate={navigate}
-            showError={showError}
           />
         );
       case "reporting":
@@ -1819,12 +1817,10 @@ export default function App() {
         );
       default:
         return (
-          <ContractsList
-            BackButton={BackButton}
+          <Dashboard
             fetchAllData={fetchAllData}
             handleLogout={handleLogout}
             navigate={navigate}
-            showError={showError}
           />
         );
     }
