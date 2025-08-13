@@ -816,16 +816,16 @@ app.put(
         if (adminExists)
           return res.status(400).json({ message: "Admin user already exists" });
         user.role = "admin";
-        user.allowedPages = PAGE_NAMES;
+        if (allowedPages !== undefined) {
+          user.allowedPages = allowedPages;
+        } else {
+          user.allowedPages = PAGE_NAMES;
+        }
       } else if (role === "user" && user.role === "admin") {
         user.role = "user";
         if (allowedPages !== undefined) user.allowedPages = allowedPages;
       } else {
         if (allowedPages !== undefined) user.allowedPages = allowedPages;
-      }
-      // ensure admin always has all pages including userManagement
-      if (user.role === "admin") {
-        user.allowedPages = PAGE_NAMES;
       }
       await user.save();
       return res.json({ message: "User updated successfully" });
