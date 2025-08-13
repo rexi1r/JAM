@@ -129,7 +129,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
             اطلاعات کلی قرارداد
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="fullName">نام و نام خانوادگی</Label>
               <Input
                 id="fullName"
@@ -139,7 +139,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 required
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="ceremonyType">نوع مراسم</Label>
               <Input
                 id="ceremonyType"
@@ -148,7 +148,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 onChange={handleInputChange}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="lunch">ناهار</Label>
               <Input
                 id="lunch"
@@ -157,7 +157,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 onChange={handleInputChange}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="dinner">شام</Label>
               <Input
                 id="dinner"
@@ -166,7 +166,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 onChange={handleInputChange}
               />
             </div>
-            <div className="md:col-span-2">
+            <div className="grid gap-2 md:col-span-2">
               <Label htmlFor="homeAddress">آدرس محل سکونت</Label>
               <Textarea
                 id="homeAddress"
@@ -176,7 +176,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 rows={2}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="groomName">نام داماد</Label>
               <Input
                 id="groomName"
@@ -185,7 +185,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 onChange={handleInputChange}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="groomPhone">تلفن داماد (همراه/ثابت)</Label>
               <Input
                 id="groomPhone"
@@ -194,7 +194,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 onChange={handleInputChange}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="brideName">نام عروس</Label>
               <Input
                 id="brideName"
@@ -203,7 +203,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 onChange={handleInputChange}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="bridePhone">تلفن عروس (همراه/ثابت)</Label>
               <Input
                 id="bridePhone"
@@ -212,7 +212,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 onChange={handleInputChange}
               />
             </div>
-            <div className="md:col-span-2">
+            <div className="grid gap-2 md:col-span-2">
               <Label htmlFor="ceremonyLocation">محل مراسم</Label>
               <Input
                 id="ceremonyLocation"
@@ -251,7 +251,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
               />
               <Label htmlFor="outsideProvince">خارج استان</Label>
             </div>
-            <div className="md:col-span-2">
+            <div className="grid gap-2 md:col-span-2">
               <Label htmlFor="notes">توضیحات</Label>
               <Textarea
                 id="notes"
@@ -267,7 +267,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
         <div>
           <h2 className="text-xl font-bold mb-4 border-b pb-2">تاریخ‌ها</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="invoiceDate">مورخه رسید فاکتور</Label>
               <DatePicker
                 calendar={persian}
@@ -291,7 +291,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 }}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="hennaDate">مورخه حنابندان</Label>
               <DatePicker
                 calendar={persian}
@@ -315,7 +315,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 }}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="engagementDate">مورخه عقد</Label>
               <DatePicker
                 calendar={persian}
@@ -339,7 +339,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 }}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="weddingDate">مورخه عروسی</Label>
               <DatePicker
                 calendar={persian}
@@ -414,7 +414,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
         <div>
           <h2 className="text-xl font-bold mb-4 border-b pb-2">مبالغ</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="totalPrice">قیمت کل</Label>
               <Input
                 id="totalPrice"
@@ -423,7 +423,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
                 onChange={handleInputChange}
               />
             </div>
-            <div>
+            <div className="grid gap-2">
               <Label htmlFor="prePayment">پیش پرداخت</Label>
               <Input
                 id="prePayment"
