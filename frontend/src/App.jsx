@@ -262,8 +262,13 @@ export default function App() {
   const [pageStack, setPageStack] = useState([]);
   const [loadingInitialData, setLoadingInitialData] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [dialogMessage, setDialogMessage] = useState("");
 
   const showError = (message) => setErrorMessage(message);
+
+  useEffect(() => {
+    window.alert = (message) => setDialogMessage(message);
+  }, []);
 
   const navigate = (page) => {
     const allowed = useStore.getState().allowedPages || [];
@@ -2321,6 +2326,11 @@ export default function App() {
   return (
     <div dir="rtl">
       {renderPage()}
+      {dialogMessage && (
+        <Modal title="پیام" onClose={() => setDialogMessage("")}>
+          <p>{dialogMessage}</p>
+        </Modal>
+      )}
       {errorMessage && (
         <Modal title="خطا" onClose={() => setErrorMessage("")}>
           <p>{errorMessage}</p>
