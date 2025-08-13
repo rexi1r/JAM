@@ -311,9 +311,11 @@ export default function App() {
 
     return (
       <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4 overflow-hidden">
-        <StaggeredGrid cols={2} rows={2} size={200} />
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <StaggeredGrid cols={8} rows={6} size={120} />
+        </div>
         <BackButton />
-        <Card className="w-full max-w-md">
+        <Card className="relative z-10 w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-3xl font-bold text-center">
               ورود
