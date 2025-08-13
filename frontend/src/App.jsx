@@ -213,8 +213,12 @@ const sanitizeSettings = (settings) => {
   return rest;
 };
 
+const toEnglishDigits = (str = "") =>
+  str.replace(/[۰-۹]/g, (d) => "0123456789"["۰۱۲۳۴۵۶۷۸۹".indexOf(d)]);
+
 const to24Hour = (time) => {
   if (!time) return "";
+  time = toEnglishDigits(time);
   const match = time.match(/(\d{1,2}):(\d{2})(?:\s*(AM|PM|am|pm))?/);
   if (!match) return time;
   let [, hourStr, minute, meridiem] = match;
@@ -229,6 +233,7 @@ const to24Hour = (time) => {
 
 const timeToDateObject = (time) => {
   if (!time) return null;
+  time = toEnglishDigits(time);
   const [hour, minute] = time.split(":").map(Number);
   return new DateObject({ hour, minute, calendar: persian, locale: persian_fa });
 };
@@ -1087,7 +1092,7 @@ export default function App() {
                           handleChange({
                             target: {
                               name: "startTime",
-                              value: value?.format("HH:mm") || "",
+                              value: toEnglishDigits(value?.format("HH:mm") || ""),
                               type: "time",
                             },
                           })
@@ -1110,7 +1115,7 @@ export default function App() {
                           handleChange({
                             target: {
                               name: "endTime",
-                              value: value?.format("HH:mm") || "",
+                              value: toEnglishDigits(value?.format("HH:mm") || ""),
                               type: "time",
                             },
                           })
