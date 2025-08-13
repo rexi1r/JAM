@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { create } from "zustand";
 import "./index.css";
 import DatePicker from "react-multi-date-picker";
 import TimePicker from "react-multi-date-picker/plugins/time_picker";
@@ -10,6 +9,16 @@ import StaggeredGrid from "@/components/StaggeredGrid";
 import StudioContract from "./StudioContract";
 import HallContracts from "./HallContracts";
 import StudioContracts from "./StudioContracts";
+import ContractsList from "./ContractsList";
+
+import {
+  useStore,
+  fetchWithAuth,
+  API_BASE_URL,
+  normalizeContractTimes,
+  to24Hour,
+  toEnglishDigits,
+} from "./store";
 
 // Shadcn UI components and Lucide-React for icons
 import { Button } from "@/components/ui/button";
@@ -58,8 +67,6 @@ import {
 // ------------------------------------------------------------------
 // CONFIG
 // ------------------------------------------------------------------
-const API_BASE_URL = window.location.origin;
-
 const PAGE_OPTIONS = [
   { key: "mySettings", label: "تنظیمات قیمت برای خودم" },
   { key: "customerSettings", label: "تنظیمات قیمت برای مشتری" },
@@ -77,120 +84,6 @@ const PAGE_OPTIONS = [
 // - updateMySettings/updateCustomerSettings added
 // - token + refreshToken management
 // ------------------------------------------------------------------
-const useStore = create((set) => ({
-  isLoggedIn: false,
-  token: localStorage.getItem("token") || null,
-  refreshToken: localStorage.getItem("refreshToken") || null,
-  allowedPages: JSON.parse(localStorage.getItem("allowedPages") || "[]"),
-  role: localStorage.getItem("role") || "user",
-
-  contracts: [],
-  mySettings: null,
-  customerSettings: null,
-  users: [],
-
-  login: (token, refreshToken, allowedPages = [], role = "user") => {
-    if (token) localStorage.setItem("token", token);
-    if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("allowedPages", JSON.stringify(allowedPages));
-    localStorage.setItem("role", role);
-    set({ isLoggedIn: true, token, refreshToken, allowedPages, role });
-  },
-  logout: () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("allowedPages");
-    localStorage.removeItem("role");
-    set({
-      isLoggedIn: false,
-      token: null,
-      refreshToken: null,
-      contracts: [],
-      mySettings: null,
-      customerSettings: null,
-      users: [],
-      allowedPages: [],
-      role: "user",
-    });
-  },
-
-  setContracts: (contracts) => set({ contracts }),
-  addContract: (contract) =>
-    set((s) => ({ contracts: [contract, ...s.contracts] })),
-  updateContract: (contract) =>
-    set((s) => ({
-      contracts: s.contracts.map((c) =>
-        c._id === contract._id ? contract : c
-      ),
-    })),
-  removeContract: (id) =>
-    set((s) => ({ contracts: s.contracts.filter((c) => c._id !== id) })),
-  editingContract: null,
-  setEditingContract: (contract) => set({ editingContract: contract }),
-
-  setMySettings: (settings) => set({ mySettings: settings }),
-  setCustomerSettings: (settings) => set({ customerSettings: settings }),
-
-  updateMySettings: (settings) => set({ mySettings: settings }),
-  updateCustomerSettings: (settings) => set({ customerSettings: settings }),
-
-  setUsers: (users) => set({ users }),
-  setAllowedPages: (allowedPages) => {
-    localStorage.setItem("allowedPages", JSON.stringify(allowedPages));
-    set({ allowedPages });
-  },
-}));
-
-// ------------------------------------------------------------------
-// API Helper with Auto Refresh
-// - Sends Authorization: Bearer <token>
-// - On 401, tries /api/auth/refresh once, then retries original request
-// ------------------------------------------------------------------
-const fetchWithAuth = async (url, options = {}) => {
-  const state = useStore.getState();
-  const token = state.token || localStorage.getItem("token");
-  const refreshToken =
-    state.refreshToken || localStorage.getItem("refreshToken");
-
-  const headers = {
-    "Content-Type": "application/json",
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
-
-  const doFetch = async () => fetch(url, { ...options, headers });
-  let response = await doFetch();
-
-  if (response.status === 401 && refreshToken) {
-    // try refresh once
-    try {
-      const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
-      if (refreshRes.ok) {
-        const { token: newToken } = await refreshRes.json();
-        useStore
-          .getState()
-          .login(newToken, refreshToken, state.allowedPages, state.role);
-        const retryHeaders = {
-          ...headers,
-          Authorization: `Bearer ${newToken}`,
-        };
-        response = await fetch(url, { ...options, headers: retryHeaders });
-      } else {
-        useStore.getState().logout();
-      }
-    } catch (e) {
-      useStore.getState().logout();
-    }
-  } else if (response.status === 401) {
-    useStore.getState().logout();
-  }
-
-  return response;
-};
 
 // ------------------------------------------------------------------
 // GLOBAL Modal & Utils (deduplicated)
@@ -234,37 +127,12 @@ const sanitizeSettings = (settings) => {
   return rest;
 };
 
-const toEnglishDigits = (str = "") =>
-  str.replace(/[۰-۹]/g, (d) => "0123456789"["۰۱۲۳۴۵۶۷۸۹".indexOf(d)]);
-
-const to24Hour = (time) => {
-  if (!time) return "";
-  time = toEnglishDigits(time);
-  const match = time.match(/(\d{1,2}):(\d{2})(?:\s*(AM|PM|am|pm))?/);
-  if (!match) return time;
-  let [, hourStr, minute, meridiem] = match;
-  let hour = parseInt(hourStr, 10);
-  if (meridiem) {
-    const lower = meridiem.toLowerCase();
-    if (lower === "pm" && hour < 12) hour += 12;
-    if (lower === "am" && hour === 12) hour = 0;
-  }
-  return `${String(hour).padStart(2, "0")}:${minute}`;
-};
-
 const timeToDateObject = (time) => {
   if (!time) return null;
   time = toEnglishDigits(time);
   const [hour, minute] = time.split(":").map(Number);
   return new DateObject({ hour, minute, calendar: persian, locale: persian_fa });
 };
-
-const normalizeContractTimes = (contracts = []) =>
-  contracts.map((c) => ({
-    ...c,
-    startTime: to24Hour(c.startTime),
-    endTime: to24Hour(c.endTime),
-  }));
 
 // ------------------------------------------------------------------
 // MAIN APP
@@ -1795,730 +1663,6 @@ export default function App() {
     );
   };
 
-  // ------------------------------------------------------------------
-  // Contracts List
-  // ------------------------------------------------------------------
-  const ContractsList = () => {
-    const contracts = useStore((state) => state.contracts);
-    const allowedPages = useStore((state) => state.allowedPages);
-    const role = useStore((state) => state.role);
-    const removeContract = useStore((state) => state.removeContract);
-    const updateContract = useStore((state) => state.updateContract);
-    const setEditingContract = useStore((state) => state.setEditingContract);
-    const isAdmin = role === "admin";
-    const [searchTerm, setSearchTerm] = useState("");
-    const [currentPageNumber, setCurrentPageNumber] = useState(1);
-    const contractsPerPage = 5;
-
-    const initialFilters = {
-      contractOwner: "",
-      groomFirstName: "",
-      groomLastName: "",
-      spouseFirstName: "",
-      spouseLastName: "",
-      eventDate: "",
-    };
-
-    const [advancedFilters, setAdvancedFilters] = useState(initialFilters);
-    const [tempFilters, setTempFilters] = useState(initialFilters);
-    const [openAdvanced, setOpenAdvanced] = useState(false);
-
-    const handleAdvancedChange = (e) =>
-      setTempFilters({ ...tempFilters, [e.target.name]: e.target.value });
-
-    const applyAdvancedFilters = (e) => {
-      e.preventDefault();
-      setAdvancedFilters(tempFilters);
-      setOpenAdvanced(false);
-      setCurrentPageNumber(1);
-    };
-
-    const clearAdvancedFilters = () => {
-      setAdvancedFilters(initialFilters);
-      setTempFilters(initialFilters);
-      setOpenAdvanced(false);
-      setCurrentPageNumber(1);
-    };
-
-    const handleDelete = async (id) => {
-      if (!window.confirm("آیا از حذف قرارداد مطمئن هستید؟")) return;
-      const res = await fetchWithAuth(
-        `${API_BASE_URL}/api/contracts/${id}`,
-        { method: "DELETE" }
-      );
-      if (res.ok) {
-        removeContract(id);
-      } else {
-        const t = await res.text();
-        showError(t || "خطا در حذف قرارداد.");
-      }
-    };
-
-    const handleStatusChange = async (id, status) => {
-      const res = await fetchWithAuth(
-        `${API_BASE_URL}/api/contracts/${id}/status`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ status }),
-        }
-      );
-      if (res.ok) {
-        const updated = await res.json();
-        updateContract(normalizeContractTimes([updated])[0]);
-      } else {
-        const t = await res.text();
-        showError(t || "خطا در تغییر وضعیت قرارداد.");
-      }
-    };
-
-    const handleEdit = async (id) => {
-      const res = await fetchWithAuth(`${API_BASE_URL}/api/contracts/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setEditingContract(normalizeContractTimes([data])[0]);
-        navigate("createContract");
-      } else {
-        const t = await res.text();
-        showError(t || "خطا در دریافت اطلاعات قرارداد.");
-      }
-    };
-
-    const filteredContracts = contracts.filter((c) => {
-      const termMatch = searchTerm
-        ? (c.contractOwner || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          (c.eventDate || "").includes(searchTerm)
-        : true;
-      const adv = advancedFilters;
-      const ownerMatch = adv.contractOwner
-        ? (c.contractOwner || "")
-            .toLowerCase()
-            .includes(adv.contractOwner.toLowerCase())
-        : true;
-      const groomFirstMatch = adv.groomFirstName
-        ? (c.groomFirstName || "")
-            .toLowerCase()
-            .includes(adv.groomFirstName.toLowerCase())
-        : true;
-      const groomLastMatch = adv.groomLastName
-        ? (c.groomLastName || "")
-            .toLowerCase()
-            .includes(adv.groomLastName.toLowerCase())
-        : true;
-      const spouseFirstMatch = adv.spouseFirstName
-        ? (c.spouseFirstName || "")
-            .toLowerCase()
-            .includes(adv.spouseFirstName.toLowerCase())
-        : true;
-      const spouseLastMatch = adv.spouseLastName
-        ? (c.spouseLastName || "")
-            .toLowerCase()
-            .includes(adv.spouseLastName.toLowerCase())
-        : true;
-      const eventDateMatch = adv.eventDate
-        ? (c.eventDate || "").includes(adv.eventDate)
-        : true;
-      return (
-        termMatch &&
-        ownerMatch &&
-        groomFirstMatch &&
-        groomLastMatch &&
-        spouseFirstMatch &&
-        spouseLastMatch &&
-        eventDateMatch
-      );
-    });
-
-    const indexOfLastContract = currentPageNumber * contractsPerPage;
-    const indexOfFirstContract = indexOfLastContract - contractsPerPage;
-    const currentContracts = filteredContracts.slice(
-      indexOfFirstContract,
-      indexOfLastContract
-    );
-    const totalPages =
-      Math.ceil(filteredContracts.length / contractsPerPage) || 1;
-
-    return (
-      <div className="container mx-auto p-8 min-h-screen font-iransans">
-        <BackButton />
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-extrabold text-gray-800">
-            لیست قراردادها
-          </h1>
-          <div className="flex gap-2">
-            <Button onClick={fetchAllData} variant="outline">
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              به‌روزرسانی
-            </Button>
-            <Button onClick={handleLogout} variant="destructive">
-              خروج
-            </Button>
-          </div>
-        </div>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-              <Input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full md:w-1/3"
-                placeholder="جستجو بر اساس نام یا تاریخ..."
-              />
-              <div className="flex flex-wrap gap-2">
-                <Dialog
-                  open={openAdvanced}
-                  onOpenChange={(o) => {
-                    setOpenAdvanced(o);
-                    if (o) setTempFilters(advancedFilters);
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="outline">
-                      <Search className="h-4 w-4 mr-2" /> جستجوی پیشرفته
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>جستجوی پیشرفته قرارداد</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={applyAdvancedFilters} className="space-y-4 mt-4">
-                      <div>
-                        <Label htmlFor="adv-contractOwner">نام صاحب قرارداد</Label>
-                        <Input
-                          id="adv-contractOwner"
-                          name="contractOwner"
-                          value={tempFilters.contractOwner}
-                          onChange={handleAdvancedChange}
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="adv-groomFirstName">نام داماد</Label>
-                          <Input
-                            id="adv-groomFirstName"
-                            name="groomFirstName"
-                            value={tempFilters.groomFirstName}
-                            onChange={handleAdvancedChange}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="adv-groomLastName">نام خانوادگی داماد</Label>
-                          <Input
-                            id="adv-groomLastName"
-                            name="groomLastName"
-                            value={tempFilters.groomLastName}
-                            onChange={handleAdvancedChange}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="adv-spouseFirstName">نام عروس</Label>
-                          <Input
-                            id="adv-spouseFirstName"
-                            name="spouseFirstName"
-                            value={tempFilters.spouseFirstName}
-                            onChange={handleAdvancedChange}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="adv-spouseLastName">نام خانوادگی عروس</Label>
-                          <Input
-                            id="adv-spouseLastName"
-                            name="spouseLastName"
-                            value={tempFilters.spouseLastName}
-                            onChange={handleAdvancedChange}
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="adv-eventDate">تاریخ مراسم</Label>
-                        <Input
-                          id="adv-eventDate"
-                          name="eventDate"
-                          value={tempFilters.eventDate}
-                          onChange={handleAdvancedChange}
-                          placeholder="مثلاً 1402/01/01"
-                        />
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={clearAdvancedFilters}
-                        >
-                          پاکسازی
-                        </Button>
-                        <Button type="submit">جستجو</Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-                {allowedPages.includes("mySettings") && (
-                  <Button
-                    onClick={() => navigate("mySettings")}
-                    variant="secondary"
-                  >
-                    <Settings className="h-4 w-4 mr-2" /> تنظیمات قیمت برای خودم
-                  </Button>
-                )}
-                {allowedPages.includes("customerSettings") && (
-                  <Button
-                    onClick={() => navigate("customerSettings")}
-                    variant="secondary"
-                  >
-                    <User className="h-4 w-4 mr-2" /> تنظیمات قیمت برای مشتری
-                  </Button>
-                )}
-                {allowedPages.includes("reporting") && (
-                  <Button
-                    onClick={() => navigate("reporting")}
-                    variant="secondary"
-                  >
-                    <BarChart className="h-4 w-4 mr-2" /> گزارش‌گیری
-                  </Button>
-                )}
-                {allowedPages.includes("userManagement") && (
-                  <Button
-                    onClick={() => navigate("userManagement")}
-                    variant="secondary"
-                  >
-                    <Users className="h-4 w-4 mr-2" /> مدیریت کاربران
-                  </Button>
-                )}
-                {allowedPages.includes("createContract") && (
-                  <Button
-                    onClick={() => {
-                      setEditingContract(null);
-                      navigate("createContract");
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد سالن عقد
-                  </Button>
-                )}
-                {allowedPages.includes("studioContract") && (
-                  <Button
-                    onClick={() => navigate("studioContract")}
-                    variant="secondary"
-                  >
-                    <FileText className="h-4 w-4 mr-2" /> قرارداد استدیو جم
-                  </Button>
-                )}
-                {allowedPages.includes("hallContracts") && (
-                  <Button
-                    onClick={() => navigate("hallContracts")}
-                    variant="secondary"
-                  >
-                    <FileText className="h-4 w-4 mr-2" /> قرارداد های سالن عقد
-                  </Button>
-                )}
-                {allowedPages.includes("studioContracts") && (
-                  <Button
-                    onClick={() => navigate("studioContracts")}
-                    variant="secondary"
-                  >
-                    <FileText className="h-4 w-4 mr-2" /> قرارداد های استدیو جم
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">
-                      نام صاحب قرارداد
-                    </TableHead>
-                    <TableHead className="text-right">تاریخ</TableHead>
-                    <TableHead className="text-right">مبلغ نهایی</TableHead>
-                    <TableHead className="text-right">عملیات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentContracts.length > 0 ? (
-                    currentContracts.map((c) => (
-                      <TableRow key={c._id || c.id}>
-                        <TableCell>{c.contractOwner}</TableCell>
-                        <TableCell>{c.eventDate}</TableCell>
-                        <TableCell>
-                          {Number(c.customerTotalCost || 0).toLocaleString(
-                            "fa-IR"
-                          )}{" "}
-                          تومان
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-2 sm:flex-row">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Eye className="h-4 w-4 ml-2" /> مشاهده جزئیات
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-[800px] max-w-[95%]">
-                              <DialogHeader>
-                                <DialogTitle>
-                                  جزئیات قرارداد: {c.contractOwner}
-                                </DialogTitle>
-                              </DialogHeader>
-                              <div
-                                className={`grid grid-cols-1 gap-4 mt-4 text-sm ${
-                                  isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"
-                                }`}
-                              >
-                                <div className="space-y-2">
-                                  <h4 className="font-semibold border-b pb-1">
-                                    اطلاعات کلی
-                                  </h4>
-                                  <p>
-                                    <strong>نام داماد:</strong>{" "}
-                                    {c.groomFirstName} {c.groomLastName} (
-                                    {c.groomNationalId})
-                                  </p>
-                                  <p>
-                                    <strong>نام همسر:</strong>{" "}
-                                    {c.spouseFirstName} {c.spouseLastName} (
-                                    {c.spouseNationalId})
-                                  </p>
-                                  <p>
-                                    <strong>آدرس:</strong> {c.address}
-                                  </p>
-                                  <p>
-                                    <strong>شماره تماس:</strong> {c.phone}
-                                  </p>
-                                  <p>
-                                    <strong>ایمیل:</strong> {c.email}
-                                  </p>
-                                  <p>
-                                    <strong>تعداد مهمان:</strong>{" "}
-                                    {c.inviteesCount}
-                                  </p>
-                                  <p>
-                                    <strong>تاریخ برگزاری:</strong>{" "}
-                                    {c.eventDate}
-                                  </p>
-                                  <p>
-                                    <strong>ساعت:</strong> {c.startTime} تا{" "}
-                                    {c.endTime}
-                                  </p>
-                                  <p>
-                                    <strong>تعداد خدمه:</strong>{" "}
-                                    {c.serviceStaffCount}
-                                  </p>
-                                  <p>
-                                    <strong>تخفیف:</strong>{" "}
-                                    {Number(c.discount || 0).toLocaleString(
-                                      "fa-IR"
-                                    )}{" "}
-                                    تومان
-                                  </p>
-                                  <p>
-                                    <strong>توضیحات:</strong> {c.extraDetails}
-                                  </p>
-                                </div>
-                                <div className="space-y-2">
-                                  <h4 className="font-semibold border-b pb-1 text-blue-600">
-                                    هزینه‌های مشتری
-                                  </h4>
-                                  <p>
-                                    <strong>مبلغ ورودی:</strong>{" "}
-                                    {Number(
-                                      c.customerEntryFee || 0
-                                    ).toLocaleString("fa-IR")}{" "}
-                                    تومان
-                                  </p>
-                                  <p>
-                                    <strong>حق سرویس:</strong>{" "}
-                                    {Number(
-                                      c.customerServiceFee || 0
-                                    ).toLocaleString("fa-IR")}{" "}
-                                    تومان
-                                  </p>
-                                  {c.includeJuice && (
-                                    <p>
-                                      <strong>
-                                        قیمت آبمیوه ({c.juiceCount} عدد):
-                                      </strong>{" "}
-                                      {Number(
-                                        c.customerJuicePrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeTea && (
-                                    <p>
-                                      <strong>
-                                        قیمت چایی ({c.teaCount} عدد):
-                                      </strong>{" "}
-                                      {Number(
-                                        c.customerTeaPrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeWater && (
-                                    <p>
-                                      <strong>
-                                        قیمت آب معدنی ({c.waterCount} عدد):
-                                      </strong>{" "}
-                                      {Number(
-                                        c.customerWaterPrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeCandle && (
-                                    <p>
-                                      <strong>هزینه شمع‌آرایی:</strong>{" "}
-                                      {Number(
-                                        c.customerCandlePrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeFlower && (
-                                    <p>
-                                      <strong>هزینه گل‌آرایی:</strong>{" "}
-                                      {Number(
-                                        c.customerFlowerPrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeFirework && (
-                                    <p>
-                                      <strong>
-                                        قیمت آتش‌بازی ({c.fireworkCount} عدد):
-                                      </strong>{" "}
-                                      {Number(
-                                        c.customerFireworkPrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeDinner && (
-                                    <p>
-                                      <strong>
-                                        قیمت شام ({c.dinnerCount} پرس -{" "}
-                                        {c.dinnerType}):
-                                      </strong>{" "}
-                                      {Number(
-                                        c.customerDinnerPrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  <p>
-                                    <strong>مالیات:</strong>{" "}
-                                    {Number(c.customerTax || 0).toLocaleString(
-                                      "fa-IR"
-                                    )}{" "}
-                                    تومان
-                                  </p>
-                                  <p className="font-bold">
-                                    <strong>مبلغ نهایی:</strong>{" "}
-                                    {Number(
-                                      c.customerTotalCost || 0
-                                    ).toLocaleString("fa-IR")}{" "}
-                                    تومان
-                                  </p>
-                                </div>
-                                {isAdmin && (
-                                  <div className="space-y-2">
-                                    <h4 className="font-semibold border-b pb-1 text-green-600">
-                                      هزینه‌های خودم
-                                    </h4>
-                                  <p>
-                                    <strong>مبلغ ورودی:</strong>{" "}
-                                    {Number(c.myEntryFee || 0).toLocaleString(
-                                      "fa-IR"
-                                    )}{" "}
-                                    تومان
-                                  </p>
-                                  <p>
-                                    <strong>حق سرویس:</strong>{" "}
-                                    {Number(c.myServiceFee || 0).toLocaleString(
-                                      "fa-IR"
-                                    )}{" "}
-                                    تومان
-                                  </p>
-                                  {c.includeJuice && (
-                                    <p>
-                                      <strong>
-                                        قیمت آبمیوه ({c.juiceCount} عدد):
-                                      </strong>{" "}
-                                      {Number(
-                                        c.myJuicePrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeTea && (
-                                    <p>
-                                      <strong>
-                                        قیمت چایی ({c.teaCount} عدد):
-                                      </strong>{" "}
-                                      {Number(c.myTeaPrice || 0).toLocaleString(
-                                        "fa-IR"
-                                      )}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeWater && (
-                                    <p>
-                                      <strong>
-                                        قیمت آب معدنی ({c.waterCount} عدد):
-                                      </strong>{" "}
-                                      {Number(
-                                        c.myWaterPrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeCandle && (
-                                    <p>
-                                      <strong>هزینه شمع‌آرایی:</strong>{" "}
-                                      {Number(
-                                        c.myCandlePrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeFlower && (
-                                    <p>
-                                      <strong>هزینه گل‌آرایی:</strong>{" "}
-                                      {Number(
-                                        c.myFlowerPrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeFirework && (
-                                    <p>
-                                      <strong>
-                                        قیمت آتش‌بازی ({c.fireworkCount} عدد):
-                                      </strong>{" "}
-                                      {Number(
-                                        c.myFireworkPrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  {c.includeDinner && (
-                                    <p>
-                                      <strong>
-                                        قیمت شام ({c.dinnerCount} پرس -{" "}
-                                        {c.dinnerType}):
-                                      </strong>{" "}
-                                      {Number(
-                                        c.myDinnerPrice || 0
-                                      ).toLocaleString("fa-IR")}{" "}
-                                      تومان
-                                    </p>
-                                  )}
-                                  <p>
-                                    <strong>مالیات:</strong>{" "}
-                                    {Number(c.myTax || 0).toLocaleString(
-                                      "fa-IR"
-                                    )}{" "}
-                                    تومان
-                                  </p>
-                                  <p className="font-bold">
-                                    <strong>مبلغ نهایی:</strong>{" "}
-                                    {Number(c.myTotalCost || 0).toLocaleString(
-                                      "fa-IR"
-                                    )}{" "}
-                                    تومان
-                                  </p>
-                                </div>
-                                )}
-                              </div>
-                              <div className="flex justify-end mt-4">
-                                <Button
-                                  onClick={() =>
-                                    document
-                                      .querySelector('[data-state="open"]')
-                                      .click()
-                                  }
-                                >
-                                  بستن
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(c._id)}
-                          >
-                            <Pencil className="h-4 w-4 ml-2" /> ویرایش
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDelete(c._id)}
-                          >
-                            <Trash className="h-4 w-4 ml-2" /> حذف
-                          </Button>
-                          <select
-                            value={c.status}
-                            onChange={(e) => handleStatusChange(c._id, e.target.value)}
-                            className="border rounded px-2 py-1 text-sm"
-                          >
-                            <option value="reservation">رزرو</option>
-                            <option value="final">نهایی</option>
-                            <option value="cancelled">کنسل</option>
-                          </select>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan="4"
-                        className="h-24 text-center text-gray-500"
-                      >
-                        قراردادی یافت نشد.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-6">
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() =>
-                      setCurrentPageNumber((p) => Math.max(p - 1, 1))
-                    }
-                    disabled={currentPageNumber === 1}
-                    variant="outline"
-                    size="icon"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <div className="text-sm">
-                    صفحه {currentPageNumber} از {totalPages}
-                  </div>
-                  <Button
-                    onClick={() =>
-                      setCurrentPageNumber((p) => Math.min(p + 1, totalPages))
-                    }
-                    disabled={currentPageNumber === totalPages}
-                    variant="outline"
-                    size="icon"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
 
   // ------------------------------------------------------------------
   // Simple Reporting (added to remove runtime error)
@@ -2642,11 +1786,27 @@ export default function App() {
           />
         );
       case "hallContracts":
-        return <HallContracts BackButton={BackButton} />;
+        return (
+          <HallContracts
+            BackButton={BackButton}
+            fetchAllData={fetchAllData}
+            handleLogout={handleLogout}
+            navigate={navigate}
+            showError={showError}
+          />
+        );
       case "studioContracts":
         return <StudioContracts BackButton={BackButton} />;
       case "contractsList":
-        return <ContractsList />;
+        return (
+          <ContractsList
+            BackButton={BackButton}
+            fetchAllData={fetchAllData}
+            handleLogout={handleLogout}
+            navigate={navigate}
+            showError={showError}
+          />
+        );
       case "reporting":
         return <Reporting />; // fixed missing component
       case "userManagement":
@@ -2658,7 +1818,15 @@ export default function App() {
           />
         );
       default:
-        return <ContractsList />;
+        return (
+          <ContractsList
+            BackButton={BackButton}
+            fetchAllData={fetchAllData}
+            handleLogout={handleLogout}
+            navigate={navigate}
+            showError={showError}
+          />
+        );
     }
   };
 
