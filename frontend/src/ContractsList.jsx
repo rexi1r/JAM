@@ -26,15 +26,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Settings,
-  User,
-  Plus,
-  FileText,
   ChevronLeft,
   ChevronRight,
   Eye,
-  BarChart,
-  Users,
   Search,
   Pencil,
   Trash,
@@ -50,13 +44,11 @@ const ContractsList = ({
   title = "داشبورد",
 }) => {
   const contracts = useStore((state) => state.contracts);
-  const allowedPages = useStore((state) => state.allowedPages);
   const role = useStore((state) => state.role);
   const removeContract = useStore((state) => state.removeContract);
   const updateContract = useStore((state) => state.updateContract);
   const setEditingContract = useStore((state) => state.setEditingContract);
   const isAdmin = role === "admin";
-  const isDashboard = title === "داشبورد";
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPageNumber, setCurrentPageNumber] = useState(1);
   const contractsPerPage = 5;
@@ -284,72 +276,6 @@ const ContractsList = ({
                   </form>
                 </DialogContent>
               </Dialog>
-              {allowedPages.includes("mySettings") && (
-                <Button
-                  onClick={() => navigate("mySettings")}
-                  variant="secondary"
-                >
-                  <Settings className="h-4 w-4 mr-2" /> تنظیمات قیمت برای خودم
-                </Button>
-              )}
-              {allowedPages.includes("customerSettings") && (
-                <Button
-                  onClick={() => navigate("customerSettings")}
-                  variant="secondary"
-                >
-                  <User className="h-4 w-4 mr-2" /> تنظیمات قیمت برای مشتری
-                </Button>
-              )}
-              {allowedPages.includes("reporting") && (
-                <Button
-                  onClick={() => navigate("reporting")}
-                  variant="secondary"
-                >
-                  <BarChart className="h-4 w-4 mr-2" /> گزارش‌گیری
-                </Button>
-              )}
-              {allowedPages.includes("userManagement") && (
-                <Button
-                  onClick={() => navigate("userManagement")}
-                  variant="secondary"
-                >
-                  <Users className="h-4 w-4 mr-2" /> مدیریت کاربران
-                </Button>
-              )}
-              {allowedPages.includes("createContract") && (
-                <Button
-                  onClick={() => {
-                    setEditingContract(null);
-                    navigate("createContract");
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد سالن عقد
-                </Button>
-              )}
-              {allowedPages.includes("studioContract") && (
-                <Button
-                  onClick={() => navigate("studioContract")}
-                  variant="secondary"
-                >
-                  <FileText className="h-4 w-4 mr-2" /> قرارداد استدیو جم
-                </Button>
-              )}
-              {isDashboard && allowedPages.includes("hallContracts") && (
-                <Button
-                  onClick={() => navigate("hallContracts")}
-                  variant="secondary"
-                >
-                  <FileText className="h-4 w-4 mr-2" /> قرارداد های سالن عقد
-                </Button>
-              )}
-              {isDashboard && allowedPages.includes("studioContracts") && (
-                <Button
-                  onClick={() => navigate("studioContracts")}
-                  variant="secondary"
-                >
-                  <FileText className="h-4 w-4 mr-2" /> قرارداد های استدیو جم
-                </Button>
-              )}
             </div>
           </div>
           <div className="overflow-x-auto">
