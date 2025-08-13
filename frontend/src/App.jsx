@@ -163,7 +163,7 @@ export default function App() {
     const allowed = useStore.getState().allowedPages || [];
     if (
       page !== "login" &&
-      page !== "contractsList" &&
+      page !== "dashboard" &&
       allowed.length &&
       !allowed.includes(page)
     ) {
@@ -190,7 +190,7 @@ export default function App() {
   };
 
   const BackButton = () =>
-    pageStack.length > 0 && currentPage !== "contractsList" ? (
+    pageStack.length > 0 && currentPage !== "dashboard" ? (
       <Button
         onClick={goBack}
         variant="ghost"
@@ -209,7 +209,7 @@ export default function App() {
       if (token && refreshToken) {
         login(token, refreshToken, pages, role);
         await fetchAllData();
-        setCurrentPage("contractsList");
+        setCurrentPage("dashboard");
       }
       setLoadingInitialData(false);
     };
@@ -296,7 +296,7 @@ export default function App() {
             data.role
           );
           await fetchAllData();
-          navigate("contractsList");
+          navigate("dashboard");
         } else {
           showError(data.message || "اعتبارسنجی ناموفق");
         }
@@ -399,7 +399,7 @@ export default function App() {
         );
         if (res.ok) {
           updateSettings(payload);
-          navigate("contractsList");
+          navigate("dashboard");
           alert("تنظیمات با موفقیت ذخیره شد.");
         } else {
           const t = await res.text();
@@ -830,7 +830,7 @@ export default function App() {
             addContract(normalizeContractTimes([saved])[0]);
             alert("قرارداد با موفقیت ثبت شد.");
           }
-          navigate("contractsList");
+          navigate("dashboard");
         } else {
           const t = await res.text();
           showError(
@@ -1797,7 +1797,7 @@ export default function App() {
         );
       case "studioContracts":
         return <StudioContracts BackButton={BackButton} />;
-      case "contractsList":
+      case "dashboard":
         return (
           <ContractsList
             BackButton={BackButton}

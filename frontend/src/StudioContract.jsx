@@ -105,7 +105,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
       });
       if (res.ok) {
         alert("قرارداد با موفقیت ثبت شد");
-        navigate("contractsList");
+        navigate("dashboard");
       } else {
         const t = await res.text();
         if (showError) showError(t || "خطا در ثبت قرارداد.");
