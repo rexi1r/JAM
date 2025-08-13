@@ -130,6 +130,7 @@ const PAGE_NAMES = [
   "reporting",
   "userManagement",
   "createContract",
+  "studioContract",
 ];
 
 const userSchema = new mongoose.Schema(

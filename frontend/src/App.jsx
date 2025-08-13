@@ -7,6 +7,7 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import DateObject from "react-date-object";
 import StaggeredGrid from "@/components/StaggeredGrid";
+import StudioContract from "./StudioContract";
 
 // Shadcn UI components and Lucide-React for icons
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ const PAGE_OPTIONS = [
   { key: "reporting", label: "گزارش‌گیری" },
   { key: "userManagement", label: "مدیریت کاربران" },
   { key: "createContract", label: "ثبت قرارداد جدید" },
+  { key: "studioContract", label: "ثبت قرارداد استدیو جم" },
 ];
 
 // ------------------------------------------------------------------
@@ -2078,6 +2080,14 @@ export default function App() {
                     <Plus className="h-4 w-4 mr-2" /> ثبت قرارداد جدید
                   </Button>
                 )}
+                {allowedPages.includes("studioContract") && (
+                  <Button
+                    onClick={() => navigate("studioContract")}
+                    variant="secondary"
+                  >
+                    <FileText className="h-4 w-4 mr-2" /> قرارداد استدیو جم
+                  </Button>
+                )}
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -2596,6 +2606,8 @@ export default function App() {
         );
       case "createContract":
         return <CreateContract />;
+      case "studioContract":
+        return <StudioContract />;
       case "contractsList":
         return <ContractsList />;
       case "reporting":
