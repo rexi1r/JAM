@@ -534,6 +534,7 @@ export default function App() {
                   <Label htmlFor={key}>
                     {{
                       defaultHourlyRate: "مبلغ ورودی ساعتی (تومان)",
+                      defaultExtraHourPrice: "قیمت هر ساعت اضافه (تومان)",
                       defaultServiceFeePerPerson:
                         "حق سرویس هر نفر خدمه (تومان)",
                       defaultTaxRate: "نرخ مالیات (٪)",
@@ -734,18 +735,18 @@ export default function App() {
       });
     };
 
-    const calculateEntryFee = (start, end, rate) => {
+    const calculateEntryFee = (start, end, baseRate, extraRate = 0) => {
       if (!start || !end || !start.includes(":") || !end.includes(":"))
-        return rate;
+        return baseRate;
       const [sh, sm] = start.split(":").map(Number);
       const [eh, em] = end.split(":").map(Number);
       const startDate = new Date(0, 0, 0, sh, sm);
       const endDate = new Date(0, 0, 0, eh, em);
       const diffInHours =
         (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
-      if (diffInHours <= 2) return rate;
+      if (diffInHours <= 2) return baseRate;
       const extraHours = diffInHours - 2;
-      return rate + extraHours * (rate / 2);
+      return baseRate + extraHours * extraRate;
     };
 
     useEffect(() => {
@@ -755,7 +756,8 @@ export default function App() {
           next.customerEntryFee = calculateEntryFee(
             next.startTime,
             next.endTime,
-            customerSettings.defaultHourlyRate
+            customerSettings.defaultHourlyRate,
+            customerSettings.defaultExtraHourPrice
           );
         if (!overridden.customerServiceFee)
           next.customerServiceFee =
@@ -813,7 +815,8 @@ export default function App() {
           next.myEntryFee = calculateEntryFee(
             next.startTime,
             next.endTime,
-            mySettings.defaultHourlyRate
+            mySettings.defaultHourlyRate,
+            mySettings.defaultExtraHourPrice
           );
         if (!overridden.myServiceFee)
           next.myServiceFee =

@@ -171,6 +171,7 @@ const createDefaultAdmin = async () => {
 const settingsSchema = new mongoose.Schema(
   {
     defaultHourlyRate: { type: Number, default: 0 },
+    defaultExtraHourPrice: { type: Number, default: 0 },
     defaultServiceFeePerPerson: { type: Number, default: 0 },
     defaultTaxRate: { type: Number, default: 0 },
     defaultJuicePricePerPerson: { type: Number, default: 0 },
@@ -474,6 +475,7 @@ app.post(
     }),
     [Segments.BODY]: Joi.object({
       defaultHourlyRate: Joi.number().min(0).default(0),
+      defaultExtraHourPrice: Joi.number().min(0).default(0),
       defaultServiceFeePerPerson: Joi.number().min(0).default(0),
       defaultTaxRate: Joi.number().min(0).max(100).default(0),
       defaultJuicePricePerPerson: Joi.number().min(0).default(0),
