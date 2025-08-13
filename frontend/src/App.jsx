@@ -1000,12 +1000,12 @@ export default function App() {
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="address">آدرس</Label>
-                      <Input
-                        type="text"
+                      <Textarea
                         id="address"
                         name="address"
                         value={contract.address}
                         onChange={handleChange}
+                        rows={3}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -1040,6 +1040,14 @@ export default function App() {
                         min="0"
                       />
                     </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-bold mt-8 mb-4 border-b pb-2">
+                    تاریخ مراسم
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     <div className="grid gap-2">
                       <Label htmlFor="eventDate">تاریخ برگزاری (شمسی)</Label>
                       <DatePicker
