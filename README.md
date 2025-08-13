@@ -83,6 +83,49 @@ docker compose restart backend   # مثال: ریستارت سرویس backend
 docker compose up --build backend
 ```
 
+### گردش کار روزمره در توسعه
+
+1. **تغییر کد Backend**  
+   با ذخیرهٔ فایل، `nodemon` سرویس را به‌صورت خودکار ری‌استارت می‌کند. در صورت نیاز به ری‌استارت دستی:
+   ```bash
+   docker compose restart backend
+   ```
+
+2. **تغییر کد Frontend**  
+   تغییرات با Hot Module Replacement به‌صورت لحظه‌ای اعمال می‌شوند.
+
+3. **تغییر وابستگی‌ها (package.json)**  
+   فقط همان سرویس را داخل کانتینر نصب کنید، زیرا `node_modules` به‌صورت volume مونت شده است:
+   ```bash
+   docker compose exec backend npm ci     # یا در frontend
+   ```
+   اگر دستور نصب خودکار دارد، ری‌استارت سرویس کافی است:
+   ```bash
+   docker compose restart backend
+   ```
+
+4. **تغییر قالب توسعهٔ Nginx**  
+   برای بیلد مجدد بدون وابستگی سایر سرویس‌ها:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --no-deps --build nginx
+   ```
+
+5. **وضعیت Mongo در توسعه**  
+   در حالت پایه از ایمیج رسمی `mongo:7` با volume `mongo_data` استفاده می‌شود و نیازی به override نیست.  
+   برای اتصال به `mongosh` از میزبان، می‌توانید به‌صورت اختیاری پورت را publish کنید:
+   ```yaml
+   services:
+     mongo:
+       ports:
+         - "27017:27017"
+   ```
+   سرویس `mongo-express` در آدرس [http://localhost:8081](http://localhost:8081) برای بازرسی سریع دیتابیس در دسترس است.
+
+6. **نکته‌های کاربردی**  
+   - مقدار `NGINX_ENV=development` در `.env` باعث استفاده از قالب توسعه می‌شود.  
+   - `ALLOWED_ORIGINS` شامل `http://localhost` و `http://localhost:3000` است؛ هنگام استفاده از Nginx روی `http://localhost` همین کافی است.  
+   - Backend با `MONGO_URI` شبکهٔ داخلی به Mongo متصل می‌شود و معمولاً نیاز به ری‌استارت Mongo ندارد.
+
 ---
 
 ## اجرای پروژه در محیط تولید
