@@ -541,7 +541,9 @@ export default function App() {
 
     useEffect(() => {
       if (editingContract) {
-        setContract(editingContract);
+        // Merge fetched contract data with existing defaults so that
+        // undefined fields from the server don't clear the form state.
+        setContract((prev) => ({ ...prev, ...editingContract }));
       }
     }, [editingContract]);
 
