@@ -5,7 +5,7 @@ import TimePicker from "react-multi-date-picker/plugins/time_picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import DateObject from "react-date-object";
-import StaggeredGrid from "@/components/StaggeredGrid";
+import PhysicalStaggerBackground from "@/components/PhysicalStaggerBackground";
 import StudioContract from "./StudioContract";
 import HallContracts from "./HallContracts";
 import StudioContracts from "./StudioContracts";
@@ -310,7 +310,7 @@ export default function App() {
     return (
       <div className="relative flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 -z-10">
-          <StaggeredGrid cols={8} rows={6} size={120} />
+          <PhysicalStaggerBackground />
         </div>
         <BackButton />
         <Card className="relative z-10 w-full max-w-md">
