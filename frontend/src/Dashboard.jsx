@@ -1,5 +1,5 @@
-import React from "react";
-import { useStore } from "./store";
+import React, { useEffect, useState } from "react";
+import { useStore, fetchWithAuth, API_BASE_URL, toEnglishDigits } from "./store";
 import { Button } from "@/components/ui/button";
 import {
   RefreshCcw,
@@ -13,6 +13,52 @@ import {
 
 const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
   const allowedPages = useStore((state) => state.allowedPages);
+  const [contracts, setContracts] = useState([]);
+
+  useEffect(() => {
+    const loadContracts = async () => {
+      try {
+        const hallRes = await fetchWithAuth(
+          `${API_BASE_URL}/api/contracts/search?limit=1000&page=1`
+        );
+        const studioRes = await fetchWithAuth(
+          `${API_BASE_URL}/api/studio-contracts`
+        );
+        const hallData = hallRes.ok ? (await hallRes.json()).contracts || [] : [];
+        const studioData = studioRes.ok ? await studioRes.json() : [];
+
+        const hallMapped = hallData.map((c) => ({
+          name: c.contractOwner,
+          date: c.eventDate,
+          tag: "سالن عقد",
+        }));
+
+        const studioMapped = studioData
+          .map((c) => ({
+            name: c.fullName,
+            date:
+              c.weddingDate || c.engagementDate || c.hennaDate || c.invoiceDate,
+            tag: "استدیو جم",
+          }))
+          .filter((c) => c.date);
+
+        const parseDate = (d) => {
+          const parts = toEnglishDigits(d).split("/").map(Number);
+          if (parts.length !== 3) return 0;
+          const [y, m, day] = parts;
+          return new Date(y, m - 1, day).getTime();
+        };
+
+        const combined = [...hallMapped, ...studioMapped].sort(
+          (a, b) => parseDate(b.date) - parseDate(a.date)
+        );
+        setContracts(combined);
+      } catch (e) {
+        console.error("Failed to fetch contracts", e);
+      }
+    };
+    loadContracts();
+  }, []);
 
   return (
     <div className="container mx-auto p-8 min-h-screen font-iransans">
@@ -88,6 +134,23 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
           </Button>
         )}
       </div>
+      {contracts.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-4">قراردادها</h2>
+          <div className="space-y-2">
+            {contracts.map((c, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between border p-2 rounded"
+              >
+                <span>{c.name}</span>
+                <span>{c.date}</span>
+                <span className="text-sm text-gray-500">{c.tag}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
