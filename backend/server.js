@@ -624,10 +624,97 @@ class SampleData {
     }
   }
 
+  static async seedStudioContract() {
+    const count = await StudioContract.countDocuments();
+    if (count === 0) {
+      await StudioContract.create([
+        {
+          fullName: "نمونه استودیو ۱",
+          ceremonyType: "عروسی",
+          invoiceDate: "1403/01/01",
+          weddingDate: "1403/01/10",
+          groomName: "علی",
+          brideName: "سمیرا",
+          services: [
+            { name: "عکاسی", quantity: "1", price: "5000000", details: "" },
+          ],
+          totalPrice: "5000000",
+          prePayment: "1000000",
+        },
+        {
+          fullName: "نمونه استودیو ۲",
+          ceremonyType: "عروسی",
+          invoiceDate: "1403/02/01",
+          weddingDate: "1403/02/12",
+          groomName: "علی",
+          brideName: "سمیرا",
+          services: [
+            { name: "عکاسی", quantity: "1", price: "6000000", details: "" },
+          ],
+          totalPrice: "6000000",
+          prePayment: "1500000",
+        },
+        {
+          fullName: "نمونه استودیو ۳",
+          ceremonyType: "عروسی",
+          invoiceDate: "1403/03/01",
+          weddingDate: "1403/03/20",
+          groomName: "علی",
+          brideName: "سمیرا",
+          services: [
+            { name: "عکاسی", quantity: "1", price: "5500000", details: "" },
+          ],
+          totalPrice: "5500000",
+          prePayment: "1200000",
+        },
+        {
+          fullName: "نمونه استودیو ۴",
+          ceremonyType: "عروسی",
+          invoiceDate: "1403/04/01",
+          weddingDate: "1403/04/15",
+          groomName: "علی",
+          brideName: "سمیرا",
+          services: [
+            { name: "عکاسی", quantity: "1", price: "6500000", details: "" },
+          ],
+          totalPrice: "6500000",
+          prePayment: "2000000",
+        },
+        {
+          fullName: "نمونه استودیو ۵",
+          ceremonyType: "عروسی",
+          invoiceDate: "1403/05/01",
+          weddingDate: "1403/05/18",
+          groomName: "علی",
+          brideName: "سمیرا",
+          services: [
+            { name: "عکاسی", quantity: "1", price: "7000000", details: "" },
+          ],
+          totalPrice: "7000000",
+          prePayment: "2500000",
+        },
+        {
+          fullName: "نمونه استودیو ۶",
+          ceremonyType: "عروسی",
+          invoiceDate: "1403/06/01",
+          weddingDate: "1403/06/22",
+          groomName: "علی",
+          brideName: "سمیرا",
+          services: [
+            { name: "عکاسی", quantity: "1", price: "7500000", details: "" },
+          ],
+          totalPrice: "7500000",
+          prePayment: "3000000",
+        },
+      ]);
+    }
+  }
+
   static async seed() {
     try {
       await this.seedSettings();
       await this.seedContract();
+      await this.seedStudioContract();
     } catch (err) {
       console.error("Error seeding sample data:", err.message);
     }
