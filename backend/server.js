@@ -1010,6 +1010,48 @@ app.get("/api/studio-contracts", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/api/studio-contracts/:id", authMiddleware, async (req, res) => {
+  try {
+    const doc = await StudioContract.findById(req.params.id);
+    if (!doc) return res.status(404).send("Not found");
+    return res.json(doc);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("Server error");
+  }
+});
+
+app.put(
+  "/api/studio-contracts/:id",
+  authMiddleware,
+  celebrate({ [Segments.BODY]: studioContractBodySchema }),
+  async (req, res) => {
+    try {
+      const updated = await StudioContract.findByIdAndUpdate(
+        req.params.id,
+        req.body,
+        { new: true }
+      );
+      if (!updated) return res.status(404).send("Not found");
+      return res.json(updated);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Server error");
+    }
+  }
+);
+
+app.delete("/api/studio-contracts/:id", authMiddleware, async (req, res) => {
+  try {
+    const deleted = await StudioContract.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).send("Not found");
+    return res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("Server error");
+  }
+});
+
 app.get(
   "/api/studio-contracts/reporting",
   authMiddleware,
