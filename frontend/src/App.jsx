@@ -72,10 +72,10 @@ const PAGE_OPTIONS = [
   { key: "hallReporting", label: "گزارش‌گیری قراردادهای سالن عقد" },
   { key: "studioReporting", label: "گزارش‌گیری قراردادهای استدیو جم" },
   { key: "userManagement", label: "مدیریت کاربران" },
-  { key: "createContract", label: "ثبت قرارداد سالن عقد" },
-  { key: "studioContract", label: "ثبت قرارداد استدیو جم" },
   { key: "hallContracts", label: "قراردادهای سالن عقد" },
   { key: "studioContracts", label: "قراردادهای استدیو جم" },
+  { key: "createContract", label: "ثبت قرارداد سالن عقد" },
+  { key: "studioContract", label: "ثبت قرارداد استدیو جم" },
 ];
 
 // ------------------------------------------------------------------
