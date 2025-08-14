@@ -54,7 +54,6 @@ import {
   ChevronRight,
   Loader2,
   Eye,
-  BarChart,
   Users,
   Key,
   RefreshCcw,
@@ -70,7 +69,8 @@ import {
 const PAGE_OPTIONS = [
   { key: "mySettings", label: "تنظیمات قیمت برای خودم" },
   { key: "customerSettings", label: "تنظیمات قیمت برای مشتری" },
-  { key: "reporting", label: "گزارش‌گیری" },
+  { key: "hallReporting", label: "گزارش‌گیری قراردادهای سالن عقد" },
+  { key: "studioReporting", label: "گزارش‌گیری قراردادهای استدیو جم" },
   { key: "userManagement", label: "مدیریت کاربران" },
   { key: "createContract", label: "ثبت قرارداد سالن عقد" },
   { key: "studioContract", label: "ثبت قرارداد استدیو جم" },
@@ -1669,9 +1669,9 @@ export default function App() {
 
 
   // ------------------------------------------------------------------
-  // Simple Reporting (added to remove runtime error)
+  // Hall Reporting
   // ------------------------------------------------------------------
-  const Reporting = () => {
+  const HallReporting = () => {
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -1697,7 +1697,7 @@ export default function App() {
       <div className="container mx-auto p-8 min-h-screen font-iransans">
         <BackButton />
         <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
-          گزارش‌گیری
+          گزارش‌گیری قراردادهای سالن عقد
         </h1>
         <Card>
           <CardContent className="pt-6">
@@ -1741,6 +1741,78 @@ export default function App() {
                           {Number(
                             r.myTotal || r.myTotalCost || 0
                           ).toLocaleString("fa-IR")}{" "}
+                          تومان
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // ------------------------------------------------------------------
+  // Studio Reporting
+  // ------------------------------------------------------------------
+  const StudioReporting = () => {
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const load = async () => {
+        try {
+          const res = await fetchWithAuth(
+            `${API_BASE_URL}/api/studio-contracts/reporting`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setRows(data || []);
+          }
+        } catch (e) {
+          /* noop */
+        }
+        setLoading(false);
+      };
+      load();
+    }, []);
+
+    return (
+      <div className="container mx-auto p-8 min-h-screen font-iransans">
+        <BackButton />
+        <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
+          گزارش‌گیری قراردادهای استدیو جم
+        </h1>
+        <Card>
+          <CardContent className="pt-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : rows.length === 0 ? (
+              <div className="text-center text-gray-500 py-12">
+                داده‌ای یافت نشد.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">ماه</TableHead>
+                      <TableHead className="text-right">تعداد قرارداد</TableHead>
+                      <TableHead className="text-right">جمع مبلغ</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((r, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{r.monthName}</TableCell>
+                        <TableCell>{r.contractCount}</TableCell>
+                        <TableCell>
+                          {Number(r.totalPrice || 0).toLocaleString("fa-IR")}{" "}
                           تومان
                         </TableCell>
                       </TableRow>
@@ -1809,8 +1881,10 @@ export default function App() {
             navigate={navigate}
           />
         );
-      case "reporting":
-        return <Reporting />; // fixed missing component
+      case "hallReporting":
+        return <HallReporting />;
+      case "studioReporting":
+        return <StudioReporting />;
       case "userManagement":
         return (
           <UserManagement

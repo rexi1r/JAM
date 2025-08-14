@@ -42,9 +42,14 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
             <User className="h-4 w-4 mr-2" /> تنظیمات قیمت برای مشتری
           </Button>
         )}
-        {allowedPages.includes("reporting") && (
-          <Button onClick={() => navigate("reporting")} variant="secondary">
-            <BarChart className="h-4 w-4 mr-2" /> گزارش‌گیری
+        {allowedPages.includes("hallReporting") && (
+          <Button onClick={() => navigate("hallReporting")} variant="secondary">
+            <BarChart className="h-4 w-4 mr-2" /> گزارش‌گیری سالن عقد
+          </Button>
+        )}
+        {allowedPages.includes("studioReporting") && (
+          <Button onClick={() => navigate("studioReporting")} variant="secondary">
+            <BarChart className="h-4 w-4 mr-2" /> گزارش‌گیری استدیو جم
           </Button>
         )}
         {allowedPages.includes("userManagement") && (
