@@ -110,6 +110,19 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
             <Users className="h-4 w-4 mr-2" /> مدیریت کاربران
           </Button>
         )}
+        {allowedPages.includes("hallContracts") && (
+          <Button onClick={() => navigate("hallContracts")} variant="secondary">
+            <FileText className="h-4 w-4 mr-2" /> لیست قرارداد های سالن عقد
+          </Button>
+        )}
+        {allowedPages.includes("studioContracts") && (
+          <Button
+            onClick={() => navigate("studioContracts")}
+            variant="secondary"
+          >
+            <FileText className="h-4 w-4 mr-2" /> لیست قرارداد های استدیو جم
+          </Button>
+        )}
         {allowedPages.includes("createContract") && (
           <Button
             onClick={() => {
@@ -122,19 +135,6 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
         {allowedPages.includes("studioContract") && (
           <Button onClick={() => navigate("studioContract")}>
             <FileText className="h-4 w-4 mr-2" /> ثبت قرارداد استدیو جم
-          </Button>
-        )}
-        {allowedPages.includes("hallContracts") && (
-          <Button onClick={() => navigate("hallContracts")} variant="secondary">
-            <FileText className="h-4 w-4 mr-2" /> لیست قرارداد های سالن عقد
-          </Button>
-        )}
-        {allowedPages.includes("studioContracts") && (
-          <Button
-            onClick={() => navigate("studioContracts")}
-            variant="secondary"
-          >
-            <FileText className="h-4 w-4 mr-2" /> لیست قرارداد های استدیو جم
           </Button>
         )}
       </div>
