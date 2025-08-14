@@ -18,12 +18,16 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
   useEffect(() => {
     const loadContracts = async () => {
       try {
-        const hallRes = await fetchWithAuth(
-          `${API_BASE_URL}/api/contracts/search?limit=1000&page=1`
-        );
-        const studioRes = await fetchWithAuth(
-          `${API_BASE_URL}/api/studio-contracts`
-        );
+        // Fetch hall and studio contracts in parallel to avoid
+        // unnecessary sequential waits and ensure both lists are
+        // available before merging.
+        const [hallRes, studioRes] = await Promise.all([
+          fetchWithAuth(
+            `${API_BASE_URL}/api/contracts/search?limit=1000&page=1`
+          ),
+          fetchWithAuth(`${API_BASE_URL}/api/studio-contracts`),
+        ]);
+
         const hallData = hallRes.ok ? (await hallRes.json()).contracts || [] : [];
         const studioData = studioRes.ok ? await studioRes.json() : [];
 
