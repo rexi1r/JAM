@@ -608,7 +608,7 @@ export default function App() {
     };
 
     const handleCheckboxChange = (name, checked) => {
-      setContract((prev) => ({ ...prev, [name]: checked }));
+      setContract((prev) => ({ ...prev, [name]: checked === true }));
     };
 
     const handlePriceChange = (e) => {
@@ -2080,7 +2080,7 @@ function UserManagement({ showError, navigate, BackButton }) {
                 id="new-isAdmin"
                 checked={newUser.role === "admin"}
                 onCheckedChange={(checked) => {
-                  if (checked) {
+                  if (checked === true) {
                     if (users.some((u) => u.role === "admin")) {
                       alert("فقط یک کاربر مدیر مجاز است");
                       return;
@@ -2105,9 +2105,10 @@ function UserManagement({ showError, navigate, BackButton }) {
                     checked={newUser.allowedPages.includes(p.key)}
                     disabled={newUser.role === "admin"}
                     onCheckedChange={(checked) => {
-                      const updated = checked
-                        ? [...newUser.allowedPages, p.key]
-                        : newUser.allowedPages.filter((ap) => ap !== p.key);
+                      const updated =
+                        checked === true
+                          ? [...newUser.allowedPages, p.key]
+                          : newUser.allowedPages.filter((ap) => ap !== p.key);
                       setNewUser({ ...newUser, allowedPages: updated });
                     }}
                   />
@@ -2213,7 +2214,7 @@ function UserManagement({ showError, navigate, BackButton }) {
                             id={`admin-${user._id}`}
                             checked={selectedRole}
                             onCheckedChange={(checked) => {
-                              if (checked) {
+                              if (checked === true) {
                                 if (
                                   users.some(
                                     (u) =>
@@ -2250,7 +2251,7 @@ function UserManagement({ showError, navigate, BackButton }) {
                                 }
                                 onCheckedChange={(checked) => {
                                   setSelectedPages((prev) =>
-                                    checked
+                                    checked === true
                                       ? [...prev, p.key]
                                       : prev.filter((ap) => ap !== p.key)
                                   );
