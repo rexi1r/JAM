@@ -252,6 +252,16 @@ export default function App() {
         showError("خطا در دریافت لیست قراردادها.");
       }
 
+      const studioRes = await fetchWithAuth(
+        `${API_BASE_URL}/api/studio-contracts`
+      );
+      if (studioRes.ok) {
+        const studioData = await studioRes.json();
+        useStore.getState().setStudioContracts(studioData || []);
+      } else {
+        showError("خطا در دریافت لیست قراردادهای استدیو.");
+      }
+
       const allowed = useStore.getState().allowedPages || [];
       if (allowed.includes("userManagement")) {
         const usersRes = await fetchWithAuth(`${API_BASE_URL}/api/users`);
@@ -1872,7 +1882,15 @@ export default function App() {
           />
         );
       case "studioContracts":
-        return <StudioContracts BackButton={BackButton} />;
+        return (
+          <StudioContracts
+            BackButton={BackButton}
+            fetchAllData={fetchAllData}
+            handleLogout={handleLogout}
+            navigate={navigate}
+            showError={showError}
+          />
+        );
       case "dashboard":
         return (
           <Dashboard

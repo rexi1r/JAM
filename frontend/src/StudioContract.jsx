@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
+import { useStore, fetchWithAuth, API_BASE_URL } from "./store";
 
 const serviceNames = [
   "دوربین فیلمبرداری",
@@ -34,22 +35,17 @@ const serviceNames = [
 const inputClass =
   "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive";
 
-const API_BASE_URL = window.location.origin;
-
 const toEnglishDigits = (str = "") =>
   str.replace(/[۰-۹]/g, (d) => "0123456789"["۰۱۲۳۴۵۶۷۸۹".indexOf(d)]);
-
-const fetchWithAuth = async (url, options = {}) => {
-  const token = localStorage.getItem("token");
-  const headers = {
-    "Content-Type": "application/json",
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
-  return fetch(url, { ...options, headers });
-};
-
 const StudioContract = ({ BackButton, navigate, showError }) => {
+  const {
+    addStudioContract,
+    updateStudioContract,
+    editingStudioContract,
+    setEditingStudioContract,
+  } = useStore();
+  const isEditing = !!editingStudioContract;
+
   const [formData, setFormData] = useState({
     fullName: "",
     ceremonyType: "",
@@ -79,6 +75,12 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
     prePayment: "",
   });
 
+  useEffect(() => {
+    if (editingStudioContract) {
+      setFormData((prev) => ({ ...prev, ...editingStudioContract }));
+    }
+  }, [editingStudioContract]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -99,16 +101,38 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetchWithAuth(`${API_BASE_URL}/api/studio-contracts`, {
-        method: "POST",
-        body: JSON.stringify(formData),
-      });
+      let res;
+      if (isEditing) {
+        res = await fetchWithAuth(
+          `${API_BASE_URL}/api/studio-contracts/${editingStudioContract._id}`,
+          {
+            method: "PUT",
+            body: JSON.stringify(formData),
+          }
+        );
+      } else {
+        res = await fetchWithAuth(`${API_BASE_URL}/api/studio-contracts`, {
+          method: "POST",
+          body: JSON.stringify(formData),
+        });
+      }
       if (res.ok) {
-        alert("قرارداد با موفقیت ثبت شد");
+        const data = await res.json();
+        if (isEditing) {
+          updateStudioContract(data);
+          setEditingStudioContract(null);
+          alert("قرارداد با موفقیت به‌روزرسانی شد.");
+        } else {
+          addStudioContract(data);
+          alert("قرارداد با موفقیت ثبت شد");
+        }
         navigate("dashboard");
       } else {
         const t = await res.text();
-        if (showError) showError(t || "خطا در ثبت قرارداد.");
+        if (showError)
+          showError(
+            t || (isEditing ? "خطا در ویرایش قرارداد." : "خطا در ثبت قرارداد.")
+          );
         else alert(t || "خطا در ثبت قرارداد.");
       }
     } catch (e) {
@@ -121,7 +145,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
     <div className="container mx-auto p-8 min-h-screen font-iransans">
       {BackButton && <BackButton />}
       <h1 className="text-4xl font-extrabold mb-8 text-center text-gray-800">
-        ثبت قرارداد استدیو جم
+        {isEditing ? "ویرایش قرارداد استدیو جم" : "ثبت قرارداد استدیو جم"}
       </h1>
       <form onSubmit={handleSubmit} className="space-y-8">
         <div>
@@ -436,7 +460,7 @@ const StudioContract = ({ BackButton, navigate, showError }) => {
         </div>
 
         <Button type="submit" className="mt-4">
-          ثبت
+          {isEditing ? "ویرایش" : "ثبت"}
         </Button>
       </form>
     </div>

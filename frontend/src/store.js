@@ -56,11 +56,13 @@ export const useStore = create((set) => ({
       token: null,
       refreshToken: null,
       contracts: [],
+      studioContracts: [],
       mySettings: null,
       customerSettings: null,
       users: [],
       allowedPages: [],
       role: "user",
+      editingStudioContract: null,
     });
   },
 
@@ -75,6 +77,25 @@ export const useStore = create((set) => ({
     set((s) => ({ contracts: s.contracts.filter((c) => c._id !== id) })),
   editingContract: null,
   setEditingContract: (contract) => set({ editingContract: contract }),
+
+  // Studio contracts state management
+  studioContracts: [],
+  setStudioContracts: (contracts) => set({ studioContracts: contracts }),
+  addStudioContract: (contract) =>
+    set((s) => ({ studioContracts: [contract, ...s.studioContracts] })),
+  updateStudioContract: (contract) =>
+    set((s) => ({
+      studioContracts: s.studioContracts.map((c) =>
+        c._id === contract._id ? contract : c
+      ),
+    })),
+  removeStudioContract: (id) =>
+    set((s) => ({
+      studioContracts: s.studioContracts.filter((c) => c._id !== id),
+    })),
+  editingStudioContract: null,
+  setEditingStudioContract: (contract) =>
+    set({ editingStudioContract: contract }),
 
   setMySettings: (settings) => set({ mySettings: settings }),
   setCustomerSettings: (settings) => set({ customerSettings: settings }),
