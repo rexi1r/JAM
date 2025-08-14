@@ -65,8 +65,8 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
           </Button>
         )}
         {allowedPages.includes("studioContract") && (
-          <Button onClick={() => navigate("studioContract")} variant="secondary">
-            <FileText className="h-4 w-4 mr-2" /> قرارداد استدیو جم
+          <Button onClick={() => navigate("studioContract")}>
+            <FileText className="h-4 w-4 mr-2" /> ثبت قرارداد استدیو جم
           </Button>
         )}
         {allowedPages.includes("hallContracts") && (
