@@ -316,7 +316,7 @@ const ContractsList = ({
                                   isAdmin ? "md:grid-cols-3" : "md:grid-cols-2"
                                 }`}
                               >
-                                <div className="space-y-2">
+                              <div className="space-y-2">
                                   <h4 className="font-semibold border-b pb-1">
                                     اطلاعات کلی
                                   </h4>
@@ -461,52 +461,50 @@ const ContractsList = ({
                                     )}
                                     <p>
                                       <strong>مالیات:</strong>{" "}
-                                      {Number(c.myTax || 0).toLocaleString("fa-IR")} تومان
-                                    </p>
-                                  </div>
-                                )}
+                                  {Number(c.myTax || 0).toLocaleString("fa-IR")} تومان
+                                </p>
                               </div>
-                              <DialogFooter className="flex justify-end mt-4">
-                                {isAdmin && (
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => handleEdit(c._id)}
-                                  >
-                                    <Pencil className="h-4 w-4 ml-2" /> ویرایش
-                                  </Button>
-                                )}
-                                {isAdmin && (
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    onClick={() => handleDelete(c._id)}
-                                  >
-                                    <Trash className="h-4 w-4 ml-2" /> حذف
-                                  </Button>
-                                )}
-                                {isAdmin && (
-                                  <Button
-                                    type="button"
-                                    onClick={() =>
-                                      handleStatusChange(
-                                        c._id,
-                                        c.status === "pending" ? "done" : "pending"
-                                      )
-                                    }
-                                  >
-                                    {c.status === "pending" ? "علامت انجام" : "علامت انتظار"}
-                                  </Button>
-                                )}
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
+                            )}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      {isAdmin && (
+                        <>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(c._id)}
+                          >
+                            <Pencil className="h-4 w-4 ml-2" /> ویرایش
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(c._id)}
+                          >
+                            <Trash className="h-4 w-4 ml-2" /> حذف
+                          </Button>
+                          <select
+                            value={c.status}
+                            onChange={(e) =>
+                              handleStatusChange(c._id, e.target.value)
+                            }
+                            className="border rounded px-2 py-1 text-sm"
+                          >
+                            <option value="reservation">رزرو</option>
+                            <option value="final">نهایی</option>
+                            <option value="cancelled">کنسل</option>
+                          </select>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
                     <TableCell colSpan={4} className="text-center">
                       قراردادی یافت نشد.
                     </TableCell>
