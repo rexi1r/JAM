@@ -1063,6 +1063,64 @@ app.get("/api/studio-contracts", authMiddleware, async (req, res) => {
   }
 });
 
+app.get(
+  "/api/studio-contracts/reporting",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const contracts = await StudioContract.find({});
+      const report = {};
+      const monthNames = [
+        "فروردین",
+        "اردیبهشت",
+        "خرداد",
+        "تیر",
+        "مرداد",
+        "شهریور",
+        "مهر",
+        "آبان",
+        "آذر",
+        "دی",
+        "بهمن",
+        "اسفند",
+      ];
+
+      contracts.forEach((c) => {
+        const dateStr =
+          c.weddingDate || c.engagementDate || c.hennaDate || c.invoiceDate;
+        if (!dateStr) return;
+        const [year, month] = String(dateStr).split("/").map(Number);
+        const monthKey = `${year}-${month}`;
+        const monthName = `${monthNames[month - 1]} ${year}`;
+
+        if (!report[monthKey]) {
+          report[monthKey] = {
+            monthName,
+            contractCount: 0,
+            totalPrice: 0,
+          };
+        }
+        report[monthKey].contractCount += 1;
+        report[monthKey].totalPrice += Number(c.totalPrice || 0);
+      });
+
+      const sortedData = Object.keys(report)
+        .sort((a, b) => {
+          const [yearA, monthA] = a.split("-").map(Number);
+          const [yearB, monthB] = b.split("-").map(Number);
+          if (yearA !== yearB) return yearA - yearB;
+          return monthA - monthB;
+        })
+        .map((key) => report[key]);
+
+      return res.json(sortedData);
+    } catch (e) {
+      console.error(e);
+      return res.status(500).send("Server error");
+    }
+  }
+);
+
 app.get("/api/studio-contracts/:id", authMiddleware, async (req, res) => {
   try {
     const doc = await StudioContract.findById(req.params.id);
@@ -1104,63 +1162,6 @@ app.delete("/api/studio-contracts/:id", authMiddleware, async (req, res) => {
     return res.status(500).send("Server error");
   }
 });
-
-app.get(
-  "/api/studio-contracts/reporting",
-  authMiddleware,
-  async (req, res) => {
-    try {
-      const contracts = await StudioContract.find({});
-      const report = {};
-      const monthNames = [
-        "فروردین",
-        "اردیبهشت",
-        "خرداد",
-        "تیر",
-        "مرداد",
-        "شهریور",
-        "مهر",
-        "آبان",
-        "آذر",
-        "دی",
-        "بهمن",
-        "اسفند",
-      ];
-
-      contracts.forEach((c) => {
-        const dateStr = c.weddingDate || c.engagementDate || c.hennaDate || c.invoiceDate;
-        if (!dateStr) return;
-        const [year, month] = String(dateStr).split("/").map(Number);
-        const monthKey = `${year}-${month}`;
-        const monthName = `${monthNames[month - 1]} ${year}`;
-
-        if (!report[monthKey]) {
-          report[monthKey] = {
-            monthName,
-            contractCount: 0,
-            totalPrice: 0,
-          };
-        }
-        report[monthKey].contractCount += 1;
-        report[monthKey].totalPrice += Number(c.totalPrice || 0);
-      });
-
-      const sortedData = Object.keys(report)
-        .sort((a, b) => {
-          const [yearA, monthA] = a.split("-").map(Number);
-          const [yearB, monthB] = b.split("-").map(Number);
-          if (yearA !== yearB) return yearA - yearB;
-          return monthA - monthB;
-        })
-        .map((key) => report[key]);
-
-      return res.json(sortedData);
-    } catch (e) {
-      console.error(e);
-      return res.status(500).send("Server error");
-    }
-  }
-);
 
 // Contracts
 app.post(
