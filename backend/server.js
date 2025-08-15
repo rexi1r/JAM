@@ -93,7 +93,7 @@ app.use(activityLogger);
 // Rate limit عمومی
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -102,7 +102,7 @@ app.use("/api", apiLimiter);
 // Rate limit سخت‌گیرانه‌تر برای ورود
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
