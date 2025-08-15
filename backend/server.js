@@ -161,6 +161,7 @@ const PAGE_NAMES = [
   "createContract",
   "studioContract",
   "activityLogs",
+  "calendar",
 ];
 
 const userSchema = new mongoose.Schema(
