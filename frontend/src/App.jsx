@@ -1914,7 +1914,7 @@ export default function App() {
             />
           );
         case "activityLogs":
-          return <ActivityLogs />;
+          return <ActivityLogs BackButton={BackButton} />;
         case "calendar":
           return <CalendarPage />;
         default:
