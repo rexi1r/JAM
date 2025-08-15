@@ -68,6 +68,28 @@ app.use(
   })
 );
 
+const activityLogger = (req, res, next) => {
+  res.on("finish", () => {
+    if (
+      req.method !== "GET" &&
+      res.statusCode < 400 &&
+      req.user &&
+      req.originalUrl.startsWith("/api")
+    ) {
+      ActivityLog.create({
+        user: req.user.username,
+        method: req.method,
+        endpoint: req.originalUrl,
+      }).catch((err) =>
+        console.error("ActivityLog error:", err.message)
+      );
+    }
+  });
+  next();
+};
+
+app.use(activityLogger);
+
 // Rate limit عمومی
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -138,6 +160,7 @@ const PAGE_NAMES = [
   "studioContracts",
   "createContract",
   "studioContract",
+  "activityLogs",
 ];
 
 const userSchema = new mongoose.Schema(
@@ -196,6 +219,17 @@ const settingsSchema = new mongoose.Schema(
 
 const MySettings = mongoose.model("MySettings", settingsSchema);
 const CustomerSettings = mongoose.model("CustomerSettings", settingsSchema);
+
+const activityLogSchema = new mongoose.Schema(
+  {
+    user: String,
+    method: String,
+    endpoint: String,
+  },
+  { timestamps: true }
+);
+
+const ActivityLog = mongoose.model("ActivityLog", activityLogSchema);
 
 const contractSchema = new mongoose.Schema(
   {
@@ -784,9 +818,16 @@ app.post(
       if (!isMatch)
         return res.status(400).json({ message: "Invalid credentials" });
 
-      const payload = { user: { id: user.id, role: user.role } };
+      const payload = {
+        user: { id: user.id, role: user.role, username: user.username },
+      };
       const token = signAccessToken(payload);
       const refreshToken = signRefreshToken(payload);
+      await ActivityLog.create({
+        user: user.username,
+        method: req.method,
+        endpoint: "/api/auth/login",
+      });
       return res.json({
         token,
         refreshToken,
@@ -922,6 +963,18 @@ app.put(
     }
   }
 );
+
+app.get("/api/logs", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const logs = await ActivityLog.find()
+      .sort({ createdAt: -1 })
+      .limit(100);
+    return res.json(logs);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("Server error");
+  }
+});
 
 // Settings
 app.get(
