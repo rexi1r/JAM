@@ -24,7 +24,7 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
         // available before merging.
         const [hallRes, studioRes] = await Promise.all([
           fetchWithAuth(
-            `${API_BASE_URL}/api/contracts/search?limit=1000&page=1`
+            `${API_BASE_URL}/api/contracts/search?limit=50&page=1`
           ),
           fetchWithAuth(`${API_BASE_URL}/api/studio-contracts`),
         ]);
