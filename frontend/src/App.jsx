@@ -10,6 +10,7 @@ import StudioContract from "./StudioContract";
 import HallContracts from "./HallContracts";
 import StudioContracts from "./StudioContracts";
 import Dashboard from "./Dashboard";
+import ActivityLogs from "./ActivityLogs";
 
 import {
   useStore,
@@ -76,6 +77,7 @@ const PAGE_OPTIONS = [
   { key: "studioContracts", label: "قراردادهای استدیو جم" },
   { key: "createContract", label: "ثبت قرارداد سالن عقد" },
   { key: "studioContract", label: "ثبت قرارداد استدیو جم" },
+  { key: "activityLogs", label: "گزارش فعالیت‌ها" },
 ];
 
 // ------------------------------------------------------------------
@@ -1909,6 +1911,8 @@ export default function App() {
             BackButton={BackButton}
           />
         );
+      case "activityLogs":
+        return <ActivityLogs />;
       default:
         return (
           <Dashboard

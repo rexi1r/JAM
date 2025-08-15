@@ -137,6 +137,11 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
             <FileText className="h-4 w-4 mr-2" /> ثبت قرارداد استدیو جم
           </Button>
         )}
+        {allowedPages.includes("activityLogs") && (
+          <Button onClick={() => navigate("activityLogs")} variant="secondary">
+            <FileText className="h-4 w-4 mr-2" /> گزارش فعالیت‌ها
+          </Button>
+        )}
       </div>
       {contracts.length > 0 && (
         <div className="mt-8">
