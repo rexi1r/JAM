@@ -1916,7 +1916,7 @@ export default function App() {
         case "activityLogs":
           return <ActivityLogs BackButton={BackButton} />;
         case "calendar":
-          return <CalendarPage />;
+          return <CalendarPage BackButton={BackButton} />;
         default:
           return (
             <Dashboard
