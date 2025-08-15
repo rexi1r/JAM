@@ -353,7 +353,7 @@ function EventModal({
   );
 }
 
-export default function CalendarApp() {
+export default function CalendarApp({ BackButton }: { BackButton?: React.ComponentType }) {
   const { events, add, remove, clearAll } = useEventStore();
   const [current, setCurrent] = useState(() => dayjs().startOf("month")); // ماه فعلی (جلالی)
   const [modalOpen, setModalOpen] = useState(false);
@@ -437,6 +437,7 @@ export default function CalendarApp() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-rose-50" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {BackButton && <BackButton />}
         {/* هدر */}
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div>
