@@ -11,6 +11,7 @@ import HallContracts from "./HallContracts";
 import StudioContracts from "./StudioContracts";
 import Dashboard from "./Dashboard";
 import ActivityLogs from "./ActivityLogs";
+import CalendarPage from "./CalendarPage";
 
 import {
   useStore,
@@ -78,6 +79,7 @@ const PAGE_OPTIONS = [
   { key: "createContract", label: "ثبت قرارداد سالن عقد" },
   { key: "studioContract", label: "ثبت قرارداد استدیو جم" },
   { key: "activityLogs", label: "گزارش فعالیت‌ها" },
+  { key: "calendar", label: "تقویم" },
 ];
 
 // ------------------------------------------------------------------
@@ -1881,48 +1883,50 @@ export default function App() {
             showError={showError}
           />
         );
-      case "studioContracts":
-        return (
-          <StudioContracts
-            BackButton={BackButton}
-            fetchAllData={fetchAllData}
-            handleLogout={handleLogout}
-            navigate={navigate}
-            showError={showError}
-          />
-        );
-      case "dashboard":
-        return (
-          <Dashboard
-            fetchAllData={fetchAllData}
-            handleLogout={handleLogout}
-            navigate={navigate}
-          />
-        );
-      case "hallReporting":
-        return <HallReporting />;
-      case "studioReporting":
-        return <StudioReporting />;
-      case "userManagement":
-        return (
-          <UserManagement
-            showError={showError}
-            navigate={navigate}
-            BackButton={BackButton}
-          />
-        );
-      case "activityLogs":
-        return <ActivityLogs />;
-      default:
-        return (
-          <Dashboard
-            fetchAllData={fetchAllData}
-            handleLogout={handleLogout}
-            navigate={navigate}
-          />
-        );
-    }
-  };
+        case "studioContracts":
+          return (
+            <StudioContracts
+              BackButton={BackButton}
+              fetchAllData={fetchAllData}
+              handleLogout={handleLogout}
+              navigate={navigate}
+              showError={showError}
+            />
+          );
+        case "dashboard":
+          return (
+            <Dashboard
+              fetchAllData={fetchAllData}
+              handleLogout={handleLogout}
+              navigate={navigate}
+            />
+          );
+        case "hallReporting":
+          return <HallReporting />;
+        case "studioReporting":
+          return <StudioReporting />;
+        case "userManagement":
+          return (
+            <UserManagement
+              showError={showError}
+              navigate={navigate}
+              BackButton={BackButton}
+            />
+          );
+        case "activityLogs":
+          return <ActivityLogs />;
+        case "calendar":
+          return <CalendarPage />;
+        default:
+          return (
+            <Dashboard
+              fetchAllData={fetchAllData}
+              handleLogout={handleLogout}
+              navigate={navigate}
+            />
+          );
+      }
+    };
 
   // ------------------------------------------------------------------
   // Root
