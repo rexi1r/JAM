@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-export default function ActivityLogs() {
+export default function ActivityLogs({ BackButton }) {
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
@@ -29,6 +29,7 @@ export default function ActivityLogs() {
 
   return (
     <div className="container mx-auto p-4 font-iransans">
+      {BackButton && <BackButton />}
       <h1 className="text-2xl font-bold mb-4">گزارش فعالیت‌ها</h1>
       <Table>
         <TableHeader>
