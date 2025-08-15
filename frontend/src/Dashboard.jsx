@@ -9,6 +9,7 @@ import {
   Users,
   Plus,
   FileText,
+  Calendar,
 } from "lucide-react";
 
 const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
@@ -140,6 +141,11 @@ const Dashboard = ({ fetchAllData, handleLogout, navigate }) => {
         {allowedPages.includes("activityLogs") && (
           <Button onClick={() => navigate("activityLogs")} variant="secondary">
             <FileText className="h-4 w-4 mr-2" /> گزارش فعالیت‌ها
+          </Button>
+        )}
+        {allowedPages.includes("calendar") && (
+          <Button onClick={() => navigate("calendar")} variant="secondary">
+            <Calendar className="h-4 w-4 mr-2" /> تقویم
           </Button>
         )}
       </div>
