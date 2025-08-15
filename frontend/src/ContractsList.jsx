@@ -114,15 +114,13 @@ const ContractsList = ({
     }
   };
 
-  const handleEdit = async (id) => {
-    const res = await fetchWithAuth(`${API_BASE_URL}/api/contracts/${id}`);
-    if (res.ok) {
-      const data = await res.json();
-      setEditingContract(normalizeContractTimes([data])[0]);
+  const handleEdit = (id) => {
+    const selected = contracts.find((c) => c._id === id);
+    if (selected) {
+      setEditingContract(selected);
       navigate("createContract");
     } else {
-      const t = await res.text();
-      showError(t || "خطا در دریافت اطلاعات قرارداد.");
+      showError("خطا در دریافت اطلاعات قرارداد.");
     }
   };
 
