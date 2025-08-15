@@ -66,7 +66,8 @@ ALLOWED_ORIGINS=http://localhost,http://localhost:3000
 
 ```bash
 docker compose down --rmi all --volumes --remove-orphans
-docker compose up --build
+docker compose up --build.
+
 ```
 
 ### ریستارت کردن یک سرویس خاص
@@ -107,6 +108,7 @@ docker compose up --build backend
 4. **تغییر قالب توسعهٔ Nginx**  
    برای بیلد مجدد بدون وابستگی سایر سرویس‌ها:
    ```bash
+   docker compose down --rmi all --volumes --remove-orphans && docker compose build --no-cache  && docker compose -f docker-compose.yml -f docker-compose.dev.yml up
    docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --no-deps --build nginx
    ```
 
