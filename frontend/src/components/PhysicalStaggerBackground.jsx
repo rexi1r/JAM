@@ -12,6 +12,7 @@ export default function PhysicalStaggerBackground() {
 
     const grid = gridRef.current;
     if (!grid) return;
+    grid.innerHTML = ""; // clear on mount (fix StrictMode double-run)
     grid.style.setProperty("--cols", cols);
     grid.style.setProperty("--rows", rows);
 
@@ -101,6 +102,7 @@ export default function PhysicalStaggerBackground() {
           display: grid;
           place-items: center;
           overflow: hidden;
+          background: #0b0f10; /* مشکیِ عمیق */
         }
         .physical-stagger-wrap .grid {
           display: grid;
@@ -128,9 +130,6 @@ export default function PhysicalStaggerBackground() {
           0% { transform: translateZ(0) scale(1); }
           22% { transform: translateZ(0) scale(0.9); }
           100% { transform: translateZ(0) scale(1); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .cell { animation: none !important; transition: none !important; }
         }
       `}</style>
     </div>
